@@ -41,6 +41,22 @@
       </table>
     </div>
     <p class="hint" style="margin-top:14px">“Write NFC” works in Chrome on Android phones. On other devices, use the exported links with the NFC Tools app or send the CSV to your NFC card supplier.</p>
+
+    <section id="manage" hidden>
+      <h2>Manage admins</h2>
+      <p class="hint">Admins can hide, edit or remove any staff card. Only you can see this section or change the list. Add people by their work email; they get access the next time they sign in, even if they haven’t created a card yet.</p>
+      <form id="addAdmin" class="actions" style="margin:14px 0; align-items:center">
+        <input type="email" id="newAdmin" required placeholder="name@aiacanada.com" style="max-width:340px" aria-label="Work email of the new admin" autocomplete="off">
+        <button class="btn" type="submit">Add admin</button>
+      </form>
+      <div class="status" id="adminStatus" aria-live="polite"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Added</th><th>Actions</th></tr></thead>
+          <tbody id="adminRows"></tbody>
+        </table>
+      </div>
+    </section>
   </section>
 </div>
 
@@ -65,6 +81,7 @@
     const { data, error } = await sb.from("profiles").select("*").order("last_name").order("first_name");
     if (error) { status("Cards couldn’t be loaded. Refresh the page to try again.", true); return; }
     rows = data; draw();
+    if (!$("manage").hidden) loadAdmins();
   }
 
   function btn(label, cls, fn) {
@@ -136,6 +153,61 @@
     rows.forEach(p => lines.push([p.first_name, p.last_name, K.BRANDS[p.org].name, p.email, K.cardUrl(p.slug), p.published ? "Yes" : "No"].map(cell).join(",")));
     K.download("staff-card-links.csv", new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
   });
+  // ---------- Manage admins (visible only to admin managers) ----------
+  const me = (session.user.email || "").toLowerCase();
+  let admins = [];
+  function adminStatus(msg, err) { $("adminStatus").textContent = msg; $("adminStatus").className = "status" + (err ? " error" : ""); }
+
+  async function loadAdmins() {
+    const { data, error } = await sb.from("admins").select("email, can_manage, added_at").order("added_at");
+    if (error) { adminStatus("The admin list couldn’t be loaded. Refresh the page to try again.", true); return; }
+    admins = data; drawAdmins();
+  }
+
+  function drawAdmins() {
+    const byEmail = {};
+    rows.forEach(p => { byEmail[(p.email || "").toLowerCase()] = p.first_name + " " + p.last_name; });
+    const tb = $("adminRows"); tb.innerHTML = "";
+    admins.forEach(a => {
+      const tr = document.createElement("tr");
+      const td = txt => { const c = document.createElement("td"); if (txt != null) c.textContent = txt; tr.append(c); return c; };
+      const email = String(a.email).toLowerCase();
+      const n = td(); const strong = document.createElement("strong");
+      strong.textContent = byEmail[email] || "No card yet"; if (!byEmail[email]) strong.className = "muted";
+      n.append(strong);
+      if (a.can_manage) { const pill = document.createElement("span"); pill.className = "pill"; pill.style.marginLeft = "8px"; pill.textContent = email === me ? "You · manages admins" : "Manages admins"; n.append(pill); }
+      td(email);
+      td(new Date(a.added_at).toLocaleDateString("en-CA"));
+      const act = td();
+      if (!a.can_manage) act.append(btn("Remove", "danger", () => removeAdmin(email)));
+      tb.append(tr);
+    });
+  }
+
+  async function removeAdmin(email) {
+    if (!confirm("Remove admin access for " + email + "? Their own card stays as it is.")) return;
+    const { error } = await sb.from("admins").delete().eq("email", email);
+    if (error) { adminStatus("That admin couldn’t be removed. Try again.", true); return; }
+    adminStatus("Admin access removed: " + email + ".");
+    loadAdmins();
+  }
+
+  $("addAdmin").addEventListener("submit", async e => {
+    e.preventDefault();
+    const email = $("newAdmin").value.trim().toLowerCase();
+    if (!K.emailAllowed(email)) { adminStatus("Use an AIA Canada or I-CAR Canada work email (ending in @aiacanada.com or @i-car.ca).", true); return; }
+    if (admins.some(a => String(a.email).toLowerCase() === email)) { adminStatus(email + " is already an admin.", true); return; }
+    const { error } = await sb.from("admins").insert({ email, added_by: me });
+    if (error) { adminStatus("That admin couldn’t be added. Try again.", true); return; }
+    $("newAdmin").value = "";
+    adminStatus("Admin added: " + email + ".");
+    loadAdmins();
+  });
+
+  // Only managers get the section. The database enforces the same rule.
+  const { data: mine } = await sb.from("admins").select("can_manage").eq("email", me).maybeSingle();
+  if (mine && mine.can_manage) { $("manage").hidden = false; }
+
   $("q").addEventListener("input", draw);
   $("orgFilter").addEventListener("change", draw);
   load();

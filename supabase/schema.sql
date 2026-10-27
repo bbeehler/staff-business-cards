@@ -206,3 +206,41 @@ on conflict do nothing;
 alter table public.profiles drop constraint if exists profiles_slug_not_reserved;
 alter table public.profiles add constraint profiles_slug_not_reserved
   check (slug not in ('my-card', 'admin', 'index', 'assets', 'supabase'));
+
+-- ---------------------------------------------------------------------
+-- 8. Manage admins from the admin page (applied Oct. 27, 2026)
+--    Only admins with can_manage = true (Brian) can add or remove admins.
+--    Managers can't be added or removed from the page, only here in SQL.
+-- ---------------------------------------------------------------------
+alter table public.admins add column if not exists can_manage boolean not null default false;
+alter table public.admins add column if not exists added_by extensions.citext;
+alter table public.admins drop constraint if exists admins_staff_email;
+alter table public.admins add constraint admins_staff_email
+  check (email ~* '^[^@\s]+@(aiacanada\.com|i-car\.ca)$');
+update public.admins set can_manage = true where email = 'brian.beehler@aiacanada.com';
+
+create or replace function private.can_manage_admins()
+returns boolean language sql stable security definer
+set search_path = public, extensions
+as $$
+  select exists (select 1 from public.admins
+                 where email = (auth.jwt() ->> 'email')::extensions.citext and can_manage);
+$$;
+revoke all on function private.can_manage_admins() from public;
+grant execute on function private.can_manage_admins() to authenticated;
+
+drop policy if exists "Admins can see the admin list" on public.admins;
+drop policy if exists "Admins see themselves, managers see all" on public.admins;
+create policy "Admins see themselves, managers see all" on public.admins for select to authenticated
+  using (email = (auth.jwt() ->> 'email')::extensions.citext or private.can_manage_admins());
+
+drop policy if exists "Managers add admins" on public.admins;
+create policy "Managers add admins" on public.admins for insert to authenticated
+  with check (private.can_manage_admins() and can_manage = false
+              and added_by = (auth.jwt() ->> 'email')::extensions.citext);
+
+drop policy if exists "Managers remove admins" on public.admins;
+create policy "Managers remove admins" on public.admins for delete to authenticated
+  using (private.can_manage_admins() and can_manage = false);
+
+grant insert, delete on public.admins to authenticated;

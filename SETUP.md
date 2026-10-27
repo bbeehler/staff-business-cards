@@ -33,7 +33,7 @@ This guide sets up the AIA Canada and I-CAR Canada staff business card site at *
    - **Staff email domains:** in section 1, confirm `aiacanada.com` and `i-car.ca` are the domains staff sign in with. Add or remove domains as needed.
    - **First admin:** in section 5, replace `[ADMIN EMAIL]@aiacanada.com` with the Marcom admin’s work email.
 2. In Supabase, go to **SQL Editor**, paste the whole file and select **Run**.
-3. To add more admins later, run: `insert into public.admins (email) values ('name@aiacanada.com');`
+3. To add more admins later, use **Manage admins** at the bottom of `/admin.html` (only admin managers see it). To make someone else an admin manager, run in SQL: `update public.admins set can_manage = true where email = 'name@aiacanada.com';`
 
 ## Step 3. Fill in config.js
 
