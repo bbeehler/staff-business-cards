@@ -137,6 +137,12 @@
           <div class="status" id="shareStatus" aria-live="polite"></div>
         </div>
 
+        <h2 data-i18n="myPhoneTitle"></h2>
+        <div class="panel">
+          <p data-i18n="myPhoneBody" style="margin-top:0"></p>
+          <a class="btn" id="myPhoneLink" data-i18n="myPhoneBtn"></a>
+        </div>
+
         <h2 data-i18n="nfcTitle"></h2>
         <div class="panel">
           <div id="nfcWrite" hidden>
@@ -202,6 +208,7 @@
     if (!profile) return;
     const url = K.cardUrl(profile.slug);
     $("cardLink").textContent = url; $("cardLink").href = url; $("openCard").href = url;
+    $("myPhoneLink").href = url + "?me=1";
     $("qr").innerHTML = K.qrSvg(url, 2);
     $("nfcWrite").hidden = !("NDEFReader" in window);
   }
@@ -358,7 +365,7 @@
       st.textContent = t("saved");
     } catch (err) {
       st.className = "status error";
-      if (err && err.code === "23505") { st.textContent = t("slugTaken"); $("slug").setAttribute("aria-invalid", "true"); }
+      if (err && (err.code === "23505" || (err.code === "23514" && String(err.message).includes("slug_not_reserved")))) { st.textContent = t("slugTaken"); $("slug").setAttribute("aria-invalid", "true"); }
       else st.textContent = t("saveError");
     } finally { $("saveBtn").disabled = false; }
   });

@@ -47,6 +47,25 @@
     </div>
   </article>
 
+  <!-- Owner's phone card: full-screen QR, opened from /my-card or /<slug>?me=1 -->
+  <div class="me" id="me" hidden role="dialog" aria-modal="true" aria-labelledby="meName">
+    <button class="me-close" type="button" id="meClose"></button>
+    <div class="me-inner">
+      <p class="me-hint" id="meHint"></p>
+      <div class="me-qr" id="meQr"></div>
+      <p class="me-name" id="meName"></p>
+      <p class="me-org" id="meOrg"></p>
+      <div class="me-btns">
+        <button class="btn" type="button" id="meSend"></button>
+        <button class="btn" type="button" id="meView"></button>
+      </div>
+    </div>
+    <aside class="me-tip" id="meTip" hidden>
+      <p><strong id="meTipTitle"></strong> <span id="meTipBody"></span></p>
+      <button type="button" id="meTipClose"></button>
+    </aside>
+  </div>
+
   <section class="panel" id="message" hidden>
     <h1 id="msgTitle" style="margin-top:0"></h1>
     <p id="msgBody" style="margin-bottom:0"></p>
@@ -58,7 +77,21 @@
   const K = window.Cards;
   const $ = id => document.getElementById(id);
   const parts = location.pathname.split("/").filter(Boolean);
-  const slug = (new URLSearchParams(location.search).get("u") || parts[0] || "").toLowerCase();
+  const params = new URLSearchParams(location.search);
+  let slug = (params.get("u") || parts[0] || "").toLowerCase();
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+  // Owner mode: the person's own phone card. /my-card is the home-screen start address.
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const me = slug === "my-card" || params.get("me") === "1";
+  if (slug === "my-card") {
+    slug = store.get("my-card-slug") || "";
+    if (!slug) { location.replace("/"); return; }
+  } else if (me) {
+    store.set("my-card-slug", slug);
+  }
   let p = null;
   let lang = (navigator.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
   let photoB64 = null;
@@ -109,6 +142,56 @@
     $("shareBtn").textContent = open ? t("hideQr") : t("shareCard");
     $("scanHint").textContent = t("scanToSave");
     $("card").hidden = false; $("message").hidden = true;
+
+    if (me) {
+      $("meHint").textContent = t("scanMe");
+      $("meName").textContent = p.first_name + " " + p.last_name;
+      $("meOrg").textContent = b.name;
+      $("meSend").textContent = t("sendLink");
+      $("meView").textContent = t("viewCard");
+      $("meClose").setAttribute("aria-label", t("hideQr"));
+      $("meClose").textContent = "×";
+      $("meTipTitle").textContent = t("installTip");
+      $("meTipBody").textContent = /iphone|ipad|ipod/i.test(navigator.userAgent) ? t("installIos") : t("installAndroid");
+      $("meTipClose").setAttribute("aria-label", t("dismiss"));
+      $("meTipClose").textContent = "×";
+      if (!$("meQr").innerHTML) $("meQr").innerHTML = K.qrSvg(K.cardUrl(p.slug), 2);
+    }
+  }
+
+  // ---------- Owner mode ----------
+  let wakeLock = null;
+  async function openMe() {
+    $("me").hidden = false;
+    try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {}
+  }
+  function closeMe() {
+    $("me").hidden = true;
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  }
+  // The screen lock is dropped when the app goes to the background; take it back on return.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && !$("me").hidden) openMe();
+  });
+  $("meClose").addEventListener("click", closeMe);
+  $("meView").addEventListener("click", closeMe);
+  $("meSend").addEventListener("click", () => {
+    const url = K.cardUrl(p.slug), name = p.first_name + " " + p.last_name;
+    if (navigator.share) navigator.share({ title: name, url }).catch(() => {});
+    else location.href = "mailto:?subject=" + encodeURIComponent(name) + "&body=" + encodeURIComponent(url);
+  });
+  $("meTipClose").addEventListener("click", () => { $("meTip").hidden = true; store.set("my-card-tip", "off"); });
+
+  function setupOwner(org) {
+    const head = document.head;
+    const add = (tag, attrs) => { const el = document.createElement(tag); Object.assign(el, attrs); head.append(el); };
+    add("link", { rel: "manifest", href: "/manifest-" + (org === "icar" ? "icar" : "aia") + ".webmanifest" });
+    add("link", { rel: "apple-touch-icon", href: "/assets/icon-" + (org === "icar" ? "icar" : "aia") + "-180.png" });
+    add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
+    add("meta", { name: "apple-mobile-web-app-title", content: "My card" });
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+    if (!standalone && store.get("my-card-tip") !== "off") $("meTip").hidden = false;
+    openMe();
   }
 
   document.querySelectorAll("#langSeg button").forEach(btn => btn.addEventListener("click", () => {
@@ -139,12 +222,19 @@
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) { showMessage("notFoundTitle", "notFoundBody"); return; }
 
   const sb = K.client();
-  const { data, error } = await sb.from("profiles").select("*").eq("slug", slug).eq("published", true).maybeSingle();
-  if (error || !data) { showMessage("notFoundTitle", "notFoundBody"); return; }
+  let data = null, error = null;
+  try {
+    ({ data, error } = await sb.from("profiles").select("*").eq("slug", slug).eq("published", true).maybeSingle());
+  } catch (e) { error = e; }
+  // Offline on the owner's phone: use the copy saved on the last visit.
+  if (me && error) { try { data = JSON.parse(store.get("my-card-profile") || "null"); } catch (e) {} if (data && data.slug !== slug) data = null; }
+  else if (me && data) store.set("my-card-profile", JSON.stringify(data));
+  if (!data) { showMessage("notFoundTitle", "notFoundBody"); return; }
   p = data;
-  const qLang = new URLSearchParams(location.search).get("lang");
+  const qLang = params.get("lang");
   lang = qLang === "fr" || qLang === "en" ? qLang : p.lang;
   render();
+  if (me) setupOwner(p.org);
 })();
 </script>
 </body>

@@ -16,6 +16,7 @@ This guide sets up the AIA Canada and I-CAR Canada staff business card site at *
 | `assets/` | The official AIA Canada and I-CAR Canada logos |
 | `supabase/schema.sql` | The database, security rules and photo storage |
 | `supabase/functions/vcard/` | Optional: makes “Save contact” open directly on iPhones |
+| `sw.js`, `manifest-*.webmanifest`, `assets/icon-*.png` | The “My card” phone app: full-screen QR from the home screen, works offline |
 | `CNAME`, `.nojekyll` | GitHub Pages settings |
 
 ---
@@ -91,6 +92,8 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 - [ ] Open `/admin.html` as an admin and as a regular staff member.
 - [ ] On an Android phone in Chrome, write a blank NFC tag, then tap it with an iPhone.
 - [ ] Switch the card and editor to French and review the wording.
+- [ ] In the editor, select **Open my phone card** on an iPhone and an Android phone, add it to the home screen, then open it in airplane mode. The QR code should still show and the screen should stay on.
+- [ ] Try to save a card with the address `my-card` and confirm it’s refused (it’s reserved for the phone app).
 
 ## Before rollout: approvals
 
@@ -98,6 +101,10 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 - **IT:** the email sending account (SMTP), the subdomain, Canadian data region.
 - **Privacy:** card pages are public. Mobile numbers are hidden unless each person turns them on. Card pages ask search engines not to index them.
 - **French copy:** check the French interface text against the Ongoing Terminology list.
+
+## “My card” on staff phones
+
+In the editor, **Open my phone card** opens the person’s card in phone mode (`/their-name?me=1`). Added to the home screen, the icon opens straight to a full-screen QR code at `/my-card`, keeps the screen awake while it’s showing, and works with no signal. The card details refresh whenever the phone is online. The QR code always points to the same card link, so it never needs updating.
 
 ## NFC tags for staff
 

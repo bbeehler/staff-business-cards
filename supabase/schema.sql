@@ -199,3 +199,10 @@ drop function if exists public.is_admin();
 -- ---------------------------------------------------------------------
 insert into public.admins (email) values ('[ADMIN EMAIL]@aiacanada.com')
 on conflict do nothing;
+
+-- ---------------------------------------------------------------------
+-- 7. Card addresses the site uses for itself (applied Oct. 27, 2026)
+-- ---------------------------------------------------------------------
+alter table public.profiles drop constraint if exists profiles_slug_not_reserved;
+alter table public.profiles add constraint profiles_slug_not_reserved
+  check (slug not in ('my-card', 'admin', 'index', 'assets', 'supabase'));
