@@ -118,3 +118,7 @@ Every tag stores only the person’s card link, so it never needs rewriting when
 - **One at a time:** in `/admin.html`, open the page in Chrome on an Android phone and select **Write NFC** next to the person’s name.
 - **In bulk:** select **Export links (CSV)** and send the file to your NFC card or sticker supplier, or use the NFC Tools app (Write > Add a record > URL).
 - NTAG215 or NTAG216 tags work well. Stickers on the back of a phone case let staff tap their own phone to share.
+
+## Updating the site
+
+Every page loads `shared.js`, `config.js` and `styles.css` with a version tag (for example `/shared.js?v=20261027c`). After changing any of those three files, change the tag to a new value in `index.html`, `edit.html`, `admin.html`, `404.html` and `sw.js`. Otherwise phones and browsers can keep an old copy for a while and pages break until it expires.
