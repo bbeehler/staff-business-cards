@@ -1,6 +1,6 @@
 # Staff digital business cards: setup guide
 
-> **Status (Oct. 27, 2026):** the Supabase project `staff-cards` (Canada Central) is created, the database and photo storage are set up, the contact function is deployed, and `config.js` is filled in. Steps 1, 2, 3 and 5 are done. GitHub Pages and DNS (step 6) are done. Still to do: add the first admin (step 2, last item), email registration settings (step 4) and testing (step 7).
+> **Status (Oct. 27, 2026):** the Supabase project `staff-cards` (Canada Central) is created, the database and photo storage are set up, the contact function is deployed, and `config.js` is filled in. Steps 1, 2, 3 and 5 are done, and brian.beehler@aiacanada.com is the first admin. GitHub Pages and DNS (step 6) are done. Still to do: email registration settings (step 4) and testing (step 7).
 
 This guide sets up the AIA Canada and I-CAR Canada staff business card site at **card.aiacanada.com**. It takes about an hour. Step 6 (DNS) and the email sending setup in step 4 need IT.
 
