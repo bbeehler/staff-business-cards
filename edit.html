@@ -7,17 +7,18 @@
 <title>Digital business card</title>
 <link rel="icon" href="/assets/aia-canada-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;700&display=swap">
-<link rel="stylesheet" href="/styles.css?v=20261027d">
+<link rel="stylesheet" href="/styles.css?v=20261027e">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/config.js?v=20261027d"></script>
-<script src="/shared.js?v=20261027d"></script>
+<script src="/config.js?v=20261027e"></script>
+<script src="/shared.js?v=20261027e"></script>
 </head>
 <body>
 <div class="wrap">
   <header class="topbar">
     <img class="logo" id="topLogo" src="/assets/aia-canada-logo.png" alt="AIA Canada">
     <div class="right">
+      <a class="btn secondary small" id="contactsLink" href="/contacts.html" hidden data-i18n="abLink"></a>
       <a class="btn secondary small" id="adminLink" href="/admin.html" hidden data-i18n="admin"></a>
       <button class="linkbtn" type="button" id="signOut" hidden data-i18n="signOut"></button>
       <div class="seg" role="group" aria-label="Language" id="langSeg">
@@ -241,9 +242,10 @@
 
   async function onSession(s) {
     session = s;
-    if (!session) { show("signedOut"); return; }
+    if (!session) { $("contactsLink").hidden = true; show("signedOut"); return; }
     if (!K.emailAllowed(session.user.email)) { show("notStaff"); return; }
     show("editor");
+    $("contactsLink").hidden = false;
     await loadProfile();
   }
 

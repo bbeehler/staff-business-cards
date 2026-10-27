@@ -244,3 +244,128 @@ create policy "Managers remove admins" on public.admins for delete to authentica
   using (private.can_manage_admins() and can_manage = false);
 
 grant insert, delete on public.admins to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 9. Address book (applied Oct. 27, 2026)
+--    Private to each staff member unless they share a contact with the team.
+--    Only signed-in staff can read. Visitors can only send details through submit_contact().
+-- ---------------------------------------------------------------------
+create table if not exists public.contacts (
+  id              uuid primary key default gen_random_uuid(),
+  owner_id        uuid not null references auth.users(id) on delete cascade,
+  owner_email     text not null default (auth.jwt() ->> 'email'),
+  first_name      text not null check (length(first_name) between 1 and 80),
+  last_name       text not null default '' check (length(last_name) <= 80),
+  company         text check (length(company) <= 120),
+  title           text check (length(title) <= 120),
+  email           text check (length(email) <= 200 and (email is null or email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
+  phone           text check (length(phone) <= 40),
+  notes           text check (length(notes) <= 2000),
+  event_tag       text check (length(event_tag) <= 80),
+  source          text not null default 'manual' check (source in ('manual', 'exchange')),
+  lang            text not null default 'en' check (lang in ('en', 'fr')),
+  consent_at      timestamptz,
+  consent_version text,
+  updates_opt_in  boolean not null default false,
+  updates_opt_in_at timestamptz,
+  shared          boolean not null default false,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+create index if not exists contacts_owner_idx on public.contacts (owner_id, created_at desc);
+create index if not exists contacts_shared_idx on public.contacts (created_at desc) where shared;
+
+alter table public.contacts enable row level security;
+revoke all on public.contacts from anon;
+grant select, insert, update, delete on public.contacts to authenticated;
+
+drop policy if exists "Staff see own and shared contacts" on public.contacts;
+create policy "Staff see own and shared contacts" on public.contacts for select to authenticated
+  using ((select public.is_staff()) and (owner_id = (select auth.uid()) or shared));
+drop policy if exists "Staff add their own contacts" on public.contacts;
+create policy "Staff add their own contacts" on public.contacts for insert to authenticated
+  with check ((select public.is_staff()) and owner_id = (select auth.uid()) and source = 'manual'
+              and owner_email = (select auth.jwt() ->> 'email'));
+drop policy if exists "Staff edit their own contacts" on public.contacts;
+create policy "Staff edit their own contacts" on public.contacts for update to authenticated
+  using (owner_id = (select auth.uid()))
+  with check (owner_id = (select auth.uid()) and (select public.is_staff()));
+drop policy if exists "Staff delete their own contacts" on public.contacts;
+create policy "Staff delete their own contacts" on public.contacts for delete to authenticated
+  using (owner_id = (select auth.uid()));
+
+-- Keeps the record of where a contact came from and what they agreed to.
+-- Staff can opt a card-exchange contact out of updates, but never back in.
+create or replace function private.contacts_guard()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then
+    if new.updates_opt_in then new.updates_opt_in_at := coalesce(new.updates_opt_in_at, now()); end if;
+    return new;
+  end if;
+  new.id := old.id; new.owner_id := old.owner_id; new.owner_email := old.owner_email;
+  new.source := old.source; new.created_at := old.created_at;
+  new.consent_at := old.consent_at; new.consent_version := old.consent_version;
+  if current_user = 'authenticated' and old.source = 'exchange' and new.updates_opt_in and not old.updates_opt_in then
+    new.updates_opt_in := false;
+  end if;
+  if new.updates_opt_in and not old.updates_opt_in then new.updates_opt_in_at := now(); end if;
+  if not new.updates_opt_in then new.updates_opt_in_at := null; end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+drop trigger if exists contacts_guard on public.contacts;
+create trigger contacts_guard before insert or update on public.contacts
+  for each row execute function private.contacts_guard();
+
+-- Visitors who scan a card send their details here (consent required, 30 per card per 10 minutes,
+-- repeat sends by the same email update the existing entry).
+create or replace function public.submit_contact(
+  p_slug text, p_first_name text, p_last_name text, p_company text, p_title text,
+  p_email text, p_phone text, p_note text, p_consent boolean, p_updates boolean, p_lang text)
+returns boolean
+language plpgsql security definer set search_path = '' as $$
+declare v_owner uuid; v_owner_email text; v_recent int; v_existing uuid;
+begin
+  if not coalesce(p_consent, false) then raise exception 'consent_required' using errcode = '22023'; end if;
+  if coalesce(trim(p_first_name), '') = '' then raise exception 'name_required' using errcode = '22023'; end if;
+  if coalesce(trim(p_email), '') = '' and coalesce(trim(p_phone), '') = '' then
+    raise exception 'email_or_phone_required' using errcode = '22023';
+  end if;
+  select p.id, p.email into v_owner, v_owner_email
+  from public.profiles p where p.slug = lower(p_slug) and p.published;
+  if v_owner is null then raise exception 'card_not_found' using errcode = '22023'; end if;
+  select count(*) into v_recent from public.contacts
+  where owner_id = v_owner and source = 'exchange' and created_at > now() - interval '10 minutes';
+  if v_recent >= 30 then raise exception 'too_many' using errcode = '22023'; end if;
+  if coalesce(trim(p_email), '') <> '' then
+    select c.id into v_existing from public.contacts c
+    where c.owner_id = v_owner and lower(c.email) = lower(trim(p_email)) limit 1;
+  end if;
+  if v_existing is not null then
+    update public.contacts set
+      first_name = left(trim(p_first_name), 80), last_name = left(coalesce(trim(p_last_name), ''), 80),
+      company = nullif(left(trim(p_company), 120), ''), title = nullif(left(trim(p_title), 120), ''),
+      phone = coalesce(nullif(left(trim(p_phone), 40), ''), phone),
+      notes = case when coalesce(trim(p_note), '') = '' then notes
+                   else left(concat_ws(E'\n', notes, trim(p_note)), 2000) end
+    where id = v_existing;
+    if coalesce(p_updates, false) then
+      update public.contacts set updates_opt_in = true, updates_opt_in_at = now() where id = v_existing and not updates_opt_in;
+    end if;
+    return true;
+  end if;
+  insert into public.contacts (owner_id, owner_email, first_name, last_name, company, title, email, phone, notes,
+                               source, lang, consent_at, consent_version, updates_opt_in, updates_opt_in_at)
+  values (v_owner, v_owner_email, left(trim(p_first_name), 80), left(coalesce(trim(p_last_name), ''), 80),
+          nullif(left(trim(p_company), 120), ''), nullif(left(trim(p_title), 120), ''),
+          nullif(lower(left(trim(p_email), 200)), ''), nullif(left(trim(p_phone), 40), ''),
+          nullif(left(trim(p_note), 2000), ''), 'exchange',
+          case when p_lang = 'fr' then 'fr' else 'en' end, now(), '2026-10-27',
+          coalesce(p_updates, false), case when coalesce(p_updates, false) then now() end);
+  return true;
+end;
+$$;
+revoke all on function public.submit_contact(text, text, text, text, text, text, text, text, boolean, boolean, text) from public;
+grant execute on function public.submit_contact(text, text, text, text, text, text, text, text, boolean, boolean, text) to anon, authenticated;

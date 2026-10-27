@@ -7,11 +7,11 @@
 <title>Business card</title>
 <link rel="icon" href="/assets/aia-canada-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;700&display=swap">
-<link rel="stylesheet" href="/styles.css?v=20261027d">
+<link rel="stylesheet" href="/styles.css?v=20261027e">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/config.js?v=20261027d"></script>
-<script src="/shared.js?v=20261027d"></script>
+<script src="/config.js?v=20261027e"></script>
+<script src="/shared.js?v=20261027e"></script>
 </head>
 <body>
 <!-- GitHub Pages serves this file for every card address, such as /brian-beehler. -->
@@ -34,7 +34,34 @@
 
       <div class="card-actions">
         <button class="btn" type="button" id="save"></button>
+        <button class="btn secondary" type="button" id="xOpen" aria-expanded="false" aria-controls="xForm"></button>
       </div>
+
+      <!-- Contact exchange: the visitor sends their details to this person's address book -->
+      <form class="xform" id="xForm" hidden novalidate>
+        <h2 id="xTitle"></h2>
+        <p class="hint" id="xIntro"></p>
+        <div class="xgrid">
+          <div><label for="xFirst" id="lFirst"></label><input type="text" id="xFirst" autocomplete="given-name" maxlength="80" required></div>
+          <div><label for="xLast" id="lLast"></label><input type="text" id="xLast" autocomplete="family-name" maxlength="80"></div>
+          <div><label for="xCompany" id="lCompany"></label><input type="text" id="xCompany" autocomplete="organization" maxlength="120"></div>
+          <div><label for="xJob" id="lJob"></label><input type="text" id="xJob" autocomplete="organization-title" maxlength="120"></div>
+          <div><label for="xEmail" id="lEmail"></label><input type="email" id="xEmail" autocomplete="email" inputmode="email" maxlength="200"></div>
+          <div><label for="xPhone" id="lPhone"></label><input type="tel" id="xPhone" autocomplete="tel" inputmode="tel" maxlength="40"></div>
+          <div class="full"><label for="xNote" id="lNote"></label><textarea id="xNote" rows="2" maxlength="500"></textarea></div>
+        </div>
+        <!-- Honeypot: people never see this; bots fill it in -->
+        <div class="hp" aria-hidden="true"><label for="xWebsite">Website</label><input type="text" id="xWebsite" tabindex="-1" autocomplete="off"></div>
+        <label class="check"><input type="checkbox" id="xConsent"><span id="lConsent"></span></label>
+        <label class="check"><input type="checkbox" id="xUpdates"><span id="lUpdates"></span></label>
+        <p class="hint" id="xPrivacy"></p>
+        <div class="actions">
+          <button class="btn" type="submit" id="xSend"></button>
+          <button class="btn secondary" type="button" id="xCancel"></button>
+        </div>
+        <div class="status" id="xStatus" aria-live="polite"></div>
+      </form>
+      <div class="status xdone" id="xDone" hidden aria-live="polite"></div>
 
       <nav class="card-links" id="links" aria-label="Contact"></nav>
 
@@ -141,6 +168,19 @@
     $("title").hidden = !K.title(p, lang);
     $("org").textContent = b.name;
     $("save").textContent = t("save");
+    // Contact exchange text
+    const v = { first: p.first_name, name: p.first_name + " " + p.last_name, org: b.name };
+    const f = k => K.fmt(t(k), v);
+    $("xOpen").textContent = f("xBtn");
+    $("xTitle").textContent = f("xTitle"); $("xIntro").textContent = f("xIntro");
+    $("lFirst").textContent = t("xFirst"); $("lLast").textContent = t("xLast");
+    $("lCompany").textContent = t("xCompany"); $("lJob").textContent = t("xTitle2");
+    $("lEmail").textContent = t("xEmail"); $("lPhone").textContent = t("xPhone");
+    $("lNote").textContent = f("xNote"); $("xNote").placeholder = t("xNotePh");
+    $("lConsent").textContent = f("xConsent"); $("lUpdates").textContent = f("xUpdates");
+    $("xPrivacy").textContent = f("xPrivacy");
+    $("xSend").textContent = t("xSend"); $("xCancel").textContent = t("xCancel");
+    if (!$("xDone").hidden) $("xDone").textContent = f("xSent");
 
     const L = $("links"); L.innerHTML = "";
     L.append(link(t("email"), p.email, "mailto:" + p.email));
@@ -236,6 +276,44 @@
     $("shareBtn").setAttribute("aria-expanded", String(!box.hidden));
     if (!box.hidden && !$("qr").innerHTML) $("qr").innerHTML = K.qrSvg(K.cardUrl(p.slug), 2);
     render();
+  });
+
+  // ---------- Contact exchange ----------
+  function xOpen(open) {
+    $("xForm").hidden = !open;
+    $("xOpen").setAttribute("aria-expanded", String(open));
+    if (open) { $("xDone").hidden = true; $("xStatus").textContent = ""; $("xFirst").focus(); }
+  }
+  $("xOpen").addEventListener("click", () => xOpen($("xForm").hidden));
+  $("xCancel").addEventListener("click", () => xOpen(false));
+  $("xForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const val = id => $(id).value.trim();
+    const st = $("xStatus"); st.className = "status error";
+    ["xFirst", "xEmail", "xPhone"].forEach(id => $(id).removeAttribute("aria-invalid"));
+    if ($("xWebsite").value) return;  // honeypot
+    if (!val("xFirst")) { st.textContent = t("xNeedName"); $("xFirst").setAttribute("aria-invalid", "true"); $("xFirst").focus(); return; }
+    if (!val("xEmail") && !val("xPhone")) { st.textContent = t("xNeedReach"); $("xEmail").setAttribute("aria-invalid", "true"); $("xEmail").focus(); return; }
+    if (val("xEmail") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val("xEmail"))) { st.textContent = t("xBadEmail"); $("xEmail").setAttribute("aria-invalid", "true"); $("xEmail").focus(); return; }
+    if (!$("xConsent").checked) { st.textContent = t("xNeedConsent"); $("xConsent").focus(); return; }
+    $("xSend").disabled = true; st.className = "status"; st.textContent = "";
+    let error = null;
+    try {
+      ({ error } = await K.client().rpc("submit_contact", {
+        p_slug: p.slug, p_first_name: val("xFirst"), p_last_name: val("xLast"), p_company: val("xCompany"),
+        p_title: val("xJob"), p_email: val("xEmail"), p_phone: val("xPhone"), p_note: val("xNote"),
+        p_consent: true, p_updates: $("xUpdates").checked, p_lang: lang
+      }));
+    } catch (err) { error = err; }
+    $("xSend").disabled = false;
+    if (error) {
+      st.className = "status error";
+      st.textContent = String(error.message || "").includes("too_many") ? t("xTooMany") : t("xFailed");
+      return;
+    }
+    $("xForm").reset(); xOpen(false);
+    $("xDone").hidden = false;
+    $("xDone").textContent = K.fmt(t("xSent"), { first: p.first_name });
   });
 
   $("save").addEventListener("click", async () => {

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Address book</title>
+<link rel="icon" href="/assets/aia-canada-logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;700&display=swap">
+<link rel="stylesheet" href="/styles.css?v=20261027e">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js?v=20261027e"></script>
+<script src="/shared.js?v=20261027e"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <img class="logo" src="/assets/aia-canada-logo.png" alt="AIA Canada">
+    <div class="right">
+      <a class="btn secondary small" href="/edit.html" data-i18n="openCard"></a>
+      <div class="seg" role="group" aria-label="Language" id="langSeg">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="fr" aria-pressed="false">FR</button>
+      </div>
+    </div>
+  </header>
+
+  <a class="back-link" href="/?browse=1" style="margin-top:12px"><span aria-hidden="true">←</span> <span data-i18n="searchTeam"></span></a>
+  <h1 data-i18n="abTitle" style="margin-top:8px"></h1>
+
+  <!-- Signed out -->
+  <section id="signedOut" class="panel" hidden>
+    <p data-i18n="abSignIn" style="margin-top:0"></p>
+    <a class="btn" href="/edit.html" data-i18n="abSignInBtn"></a>
+  </section>
+
+  <!-- Signed in -->
+  <section id="book" hidden>
+    <div class="seg" role="tablist" aria-label="Contacts" id="viewSeg" style="margin:6px 0 14px">
+      <button type="button" role="tab" data-view="mine" aria-pressed="true"><span data-i18n="abMine"></span> <span id="nMine"></span></button>
+      <button type="button" role="tab" data-view="shared" aria-pressed="false"><span data-i18n="abShared"></span> <span id="nShared"></span></button>
+    </div>
+
+    <div class="ab-tools">
+      <input type="search" id="q" autocomplete="off" aria-label="Search">
+      <select id="eventFilter" aria-label="Event"></select>
+    </div>
+    <div class="actions" style="margin:12px 0 4px">
+      <button class="btn" type="button" id="addBtn" data-i18n="abAdd"></button>
+      <button class="btn secondary" type="button" id="exportBtn" data-i18n="abExport"></button>
+    </div>
+
+    <div class="status" id="status" aria-live="polite"></div>
+    <p class="hint" id="count"></p>
+    <ul class="ab-list" id="list"></ul>
+    <p class="panel" id="empty" hidden></p>
+  </section>
+</div>
+
+<!-- Contact detail / edit -->
+<div class="ab-sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <form class="ab-panel" id="form" novalidate>
+    <div class="ab-head">
+      <h2 id="sheetTitle"></h2>
+      <button type="button" class="ab-x" id="closeBtn">×</button>
+    </div>
+    <p class="hint" id="sharedBy" hidden></p>
+    <p class="hint" id="consentNote" hidden></p>
+    <div class="xgrid">
+      <div><label for="f_first" data-i18n="xFirst"></label><input type="text" id="f_first" maxlength="80" required></div>
+      <div><label for="f_last" data-i18n="xLast"></label><input type="text" id="f_last" maxlength="80"></div>
+      <div><label for="f_company" data-i18n="xCompany"></label><input type="text" id="f_company" maxlength="120"></div>
+      <div><label for="f_title" data-i18n="xTitle2"></label><input type="text" id="f_title" maxlength="120"></div>
+      <div><label for="f_email" data-i18n="xEmail"></label><input type="email" id="f_email" maxlength="200" inputmode="email"></div>
+      <div><label for="f_phone" data-i18n="xPhone"></label><input type="tel" id="f_phone" maxlength="40" inputmode="tel"></div>
+      <div class="full"><label for="f_event" data-i18n="abEvent"></label><input type="text" id="f_event" maxlength="80" list="eventList"></div>
+      <div class="full"><label for="f_notes" data-i18n="abNotes"></label><textarea id="f_notes" rows="4" maxlength="2000"></textarea></div>
+    </div>
+    <datalist id="eventList"></datalist>
+    <div id="ownerOnly">
+      <label class="check"><input type="checkbox" id="f_shared"><span data-i18n="abShareToggle"></span></label>
+      <p class="hint" data-i18n="abShareHint" style="margin:2px 0 12px 28px"></p>
+      <label class="check"><input type="checkbox" id="f_updates"><span data-i18n="abUpdatesToggle"></span></label>
+      <p class="hint" id="updatesHint" style="margin:2px 0 0 28px"></p>
+    </div>
+    <div class="actions" style="margin-top:16px">
+      <button class="btn" type="submit" id="saveBtn" data-i18n="abSave"></button>
+      <button class="btn secondary" type="button" id="phoneBtn" data-i18n="abToPhone"></button>
+      <button class="btn danger" type="button" id="deleteBtn" data-i18n="abDelete"></button>
+    </div>
+    <div class="status" id="formStatus" aria-live="polite"></div>
+  </form>
+</div>
+
+<script>
+(async function () {
+  const K = window.Cards;
+  const $ = id => document.getElementById(id);
+  let lang = (navigator.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+  try { const s = localStorage.getItem("card-ui-lang"); if (s === "en" || s === "fr") lang = s; } catch (e) {}
+  const t = k => K.T[lang][k];
+  let sb = null, session = null, contacts = [], names = {}, view = "mine", editing = null;
+
+  const fold = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const fullName = c => (c.first_name + " " + (c.last_name || "")).trim();
+  const mine = c => c.owner_id === session.user.id;
+  const dateFmt = d => new Date(d).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { year: "numeric", month: "long", day: "numeric" });
+
+  function applyText() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll("#langSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    $("q").placeholder = t("abSearch");
+    $("closeBtn").setAttribute("aria-label", t("abClose"));
+    $("f_event").placeholder = t("abEventPh");
+    draw();
+    if (!$("sheet").hidden) fillSheet(editing);
+  }
+
+  function status(msg, err) { $("status").textContent = msg; $("status").className = "status" + (err ? " error" : ""); }
+
+  // ---------- List ----------
+  function draw() {
+    if (!session) return;
+    const own = contacts.filter(mine), shared = contacts.filter(c => !mine(c) && c.shared);
+    $("nMine").textContent = "(" + own.length + ")"; $("nShared").textContent = "(" + shared.length + ")";
+    document.querySelectorAll("#viewSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+    $("addBtn").hidden = view !== "mine";
+
+    const pool = view === "mine" ? own : shared;
+    const events = [...new Set(contacts.map(c => c.event_tag).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const ev = $("eventFilter").value;
+    $("eventFilter").innerHTML = "";
+    $("eventFilter").append(new Option(t("abAllEvents"), ""));
+    events.forEach(e => $("eventFilter").append(new Option(e, e)));
+    $("eventFilter").value = events.includes(ev) ? ev : "";
+    $("eventFilter").hidden = !events.length;
+    $("eventList").innerHTML = ""; events.forEach(e => $("eventList").append(new Option(e)));
+
+    const words = fold($("q").value).split(/\s+/).filter(Boolean);
+    const list = pool.filter(c => {
+      if ($("eventFilter").value && c.event_tag !== $("eventFilter").value) return false;
+      const hay = fold([c.first_name, c.last_name, c.company, c.title, c.email, c.phone, c.notes, c.event_tag].join(" "));
+      return words.every(w => hay.includes(w));
+    });
+
+    $("count").textContent = list.length === 1 ? t("abCountOne") : K.fmt(t("abCount"), { n: list.length });
+    $("empty").hidden = list.length > 0;
+    $("empty").textContent = pool.length ? t("abNoMatch") : (view === "mine" ? t("abEmpty") : t("abEmptyShared"));
+
+    const ul = $("list"); ul.innerHTML = "";
+    list.forEach(c => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button"); btn.type = "button"; btn.className = "ab-item";
+      const n = document.createElement("strong"); n.textContent = fullName(c);
+      const sub = document.createElement("span"); sub.className = "ab-sub";
+      sub.textContent = [c.title, c.company].filter(Boolean).join(", ") || c.email || c.phone || "";
+      const pills = document.createElement("span"); pills.className = "ab-pills";
+      const pill = (txt) => { const p = document.createElement("span"); p.className = "pill"; p.textContent = txt; pills.append(p); };
+      if (c.event_tag) pill(c.event_tag);
+      if (mine(c) && c.source === "exchange") pill(t("abFromCard"));
+      if (mine(c) && c.shared) pill(t("abSharedPill"));
+      if (c.updates_opt_in) pill(t("abUpdatesPill"));
+      if (!mine(c)) pill(K.fmt(t("abSharedBy"), { name: names[c.owner_email] || c.owner_email }));
+      btn.append(n, sub, pills);
+      btn.addEventListener("click", () => openSheet(c));
+      li.append(btn); ul.append(li);
+    });
+  }
+
+  async function load() {
+    const { data, error } = await sb.from("contacts").select("*").order("created_at", { ascending: false });
+    if (error) { status(t("abSaveFailed"), true); return; }
+    contacts = data;
+    // Names of colleagues who shared contacts
+    const owners = [...new Set(contacts.filter(c => !mine(c)).map(c => c.owner_email))];
+    if (owners.length) {
+      const { data: ps } = await sb.from("profiles").select("email, first_name, last_name").in("email", owners);
+      (ps || []).forEach(p => { names[p.email] = p.first_name + " " + p.last_name; });
+    }
+    draw();
+  }
+
+  // ---------- Detail sheet ----------
+  const FIELDS = { first_name: "f_first", last_name: "f_last", company: "f_company", title: "f_title",
+                   email: "f_email", phone: "f_phone", event_tag: "f_event", notes: "f_notes" };
+
+  function fillSheet(c) {
+    const own = !c || mine(c);
+    $("sheetTitle").textContent = c ? fullName(c) : t("abNewTitle");
+    Object.entries(FIELDS).forEach(([k, id]) => { $(id).value = c ? (c[k] || "") : ""; $(id).readOnly = !own; });
+    $("f_shared").checked = !!(c && c.shared);
+    $("f_updates").checked = !!(c && c.updates_opt_in);
+    const fromCard = c && c.source === "exchange";
+    $("f_updates").disabled = fromCard && !c.updates_opt_in;
+    $("updatesHint").textContent = fromCard ? t("abUpdatesExchange") : t("abUpdatesManual");
+    $("ownerOnly").hidden = !own;
+    $("saveBtn").hidden = !own; $("deleteBtn").hidden = !own || !c;
+    $("phoneBtn").hidden = !c;
+    $("sharedBy").hidden = own;
+    if (!own) $("sharedBy").textContent = K.fmt(t("abSharedBy"), { name: names[c.owner_email] || c.owner_email });
+    $("consentNote").hidden = !(own && fromCard && c.consent_at);
+    if (own && fromCard && c.consent_at) $("consentNote").textContent = K.fmt(t("abConsentNote"), { date: dateFmt(c.consent_at) });
+  }
+
+  function openSheet(c) {
+    editing = c || null;
+    $("formStatus").textContent = "";
+    fillSheet(editing);
+    $("sheet").hidden = false;
+    document.body.style.overflow = "hidden";
+    (editing && !mine(editing) ? $("closeBtn") : $("f_first")).focus();
+  }
+  function closeSheet() { $("sheet").hidden = true; document.body.style.overflow = ""; editing = null; }
+
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const st = $("formStatus"); st.className = "status error";
+    const row = {};
+    Object.entries(FIELDS).forEach(([k, id]) => { const v = $(id).value.trim(); row[k] = v || null; });
+    row.last_name = row.last_name || "";
+    if (!row.first_name) { st.textContent = t("xNeedName"); $("f_first").focus(); return; }
+    if (row.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) { st.textContent = t("xBadEmail"); $("f_email").focus(); return; }
+    row.shared = $("f_shared").checked;
+    row.updates_opt_in = $("f_updates").checked;
+    $("saveBtn").disabled = true;
+    const q = editing
+      ? sb.from("contacts").update(row).eq("id", editing.id).select().single()
+      : sb.from("contacts").insert({ ...row, owner_id: session.user.id, lang }).select().single();
+    const { data, error } = await q;
+    $("saveBtn").disabled = false;
+    if (error) { st.textContent = t("abSaveFailed"); return; }
+    if (editing) contacts = contacts.map(c => c.id === data.id ? data : c); else contacts.unshift(data);
+    editing = data; fillSheet(data);
+    st.className = "status"; st.textContent = t("abSaved");
+    draw();
+  });
+
+  $("deleteBtn").addEventListener("click", async () => {
+    if (!editing || !confirm(K.fmt(t("abDeleteConfirm"), { name: fullName(editing) }))) return;
+    const { error } = await sb.from("contacts").delete().eq("id", editing.id);
+    if (error) { $("formStatus").className = "status error"; $("formStatus").textContent = t("abSaveFailed"); return; }
+    contacts = contacts.filter(c => c.id !== editing.id);
+    closeSheet(); status(t("abDeleted")); draw();
+  });
+
+  // Save to phone: a vCard for this contact
+  function vcardFor(c) {
+    const esc = v => String(v || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
+    const L = ["BEGIN:VCARD", "VERSION:3.0", "N:" + esc(c.last_name) + ";" + esc(c.first_name) + ";;;", "FN:" + esc(fullName(c))];
+    if (c.company) L.push("ORG:" + esc(c.company));
+    if (c.title) L.push("TITLE:" + esc(c.title));
+    if (c.email) L.push("EMAIL;TYPE=INTERNET:" + c.email);
+    if (c.phone) L.push("TEL;TYPE=VOICE:" + String(c.phone).replace(/[^\d+]/g, ""));
+    const note = [c.event_tag, c.notes].filter(Boolean).join(" · ");
+    if (note) L.push("NOTE:" + esc(note));
+    L.push("END:VCARD");
+    return L.join("\r\n") + "\r\n";
+  }
+  $("phoneBtn").addEventListener("click", () => {
+    if (!editing) return;
+    const slug = K.slugify(editing.first_name, editing.last_name || "") || "contact";
+    K.download(slug + ".vcf", new Blob([vcardFor(editing)], { type: "text/vcard;charset=utf-8" }));
+  });
+
+  // CSV export of what's on screen
+  $("exportBtn").addEventListener("click", () => {
+    const cell = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+    const pool = contacts.filter(c => view === "mine" ? mine(c) : !mine(c) && c.shared);
+    const head = ["First name", "Last name", "Company", "Title", "Email", "Phone", "Event", "Notes", "Source",
+                  "Agreed to updates", "Updates agreed on", "Shared with team", "Owner", "Added"];
+    const lines = [head.map(cell).join(",")];
+    pool.forEach(c => lines.push([c.first_name, c.last_name, c.company, c.title, c.email, c.phone, c.event_tag, c.notes,
+      c.source === "exchange" ? "Card exchange" : "Added manually", c.updates_opt_in ? "Yes" : "No",
+      c.updates_opt_in_at ? c.updates_opt_in_at.slice(0, 10) : "", c.shared ? "Yes" : "No",
+      c.owner_email, c.created_at.slice(0, 10)].map(cell).join(",")));
+    K.download((view === "mine" ? "my-contacts" : "shared-contacts") + ".csv",
+      new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+  });
+
+  // ---------- Events ----------
+  document.querySelectorAll("#langSeg button").forEach(b => b.addEventListener("click", () => {
+    lang = b.dataset.lang; try { localStorage.setItem("card-ui-lang", lang); } catch (e) {} applyText();
+  }));
+  document.querySelectorAll("#viewSeg button").forEach(b => b.addEventListener("click", () => { view = b.dataset.view; draw(); }));
+  $("q").addEventListener("input", draw);
+  $("eventFilter").addEventListener("change", draw);
+  $("addBtn").addEventListener("click", () => openSheet(null));
+  $("closeBtn").addEventListener("click", closeSheet);
+  $("sheet").addEventListener("click", e => { if (e.target === $("sheet")) closeSheet(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
+
+  // ---------- Start: signed-in staff only ----------
+  applyText();
+  if (!K.configured()) { $("signedOut").hidden = false; return; }
+  sb = K.client();
+  const { data } = await sb.auth.getSession();
+  session = data.session;
+  if (!session || !K.emailAllowed(session.user.email)) { $("signedOut").hidden = false; return; }
+  $("book").hidden = false;
+  await load();
+})();
+</script>
+</body>
+</html>

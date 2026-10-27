@@ -11,6 +11,7 @@ This guide sets up the AIA Canada and I-CAR Canada staff business card site at *
 | `index.html` | The main page at card.aiacanada.com: search the team and open anyone’s card. A phone with a default card opens it automatically |
 | `edit.html` | Where staff register or sign in with their work email and build their card |
 | `404.html` | The public card page people see when they scan a QR code or tap an NFC tag (GitHub Pages uses it for every card address, such as `/brian-beehler`) |
+| `contacts.html` | Each staff member’s address book (signed-in staff only) |
 | `admin.html` | The Marcom admin page: hide, remove or edit cards, write NFC tags, export links |
 | `config.js` | The settings you fill in during step 3 |
 | `shared.js`, `styles.css` | Shared code and brand styles |
@@ -94,6 +95,7 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 - [ ] On an Android phone in Chrome, write a blank NFC tag, then tap it with an iPhone.
 - [ ] Switch the card and editor to French and review the wording.
 - [ ] In the editor, select **Open my phone card** on an iPhone and an Android phone, add it to the home screen, then open it in airplane mode. The QR code should still show and the screen should stay on.
+- [ ] From a phone that isn’t signed in, open a card, select **Share your details with…**, send test details, then sign in as that staff member and find them in the **Address book**. Share the contact with the team and confirm a colleague sees it but can’t change it.
 - [ ] Search the team on card.aiacanada.com, set a default card on a phone, reopen card.aiacanada.com and confirm it opens that card, then remove the default.
 - [ ] Try to save a card with the address `my-card` and confirm it’s refused (it’s reserved for the phone app).
 
@@ -108,6 +110,16 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 
 card.aiacanada.com opens a search of everyone with a public card, in English or French, filterable by AIA Canada or I-CAR Canada. On any card, **Make this the default card on this phone** saves that choice on the device. From then on, opening card.aiacanada.com on that phone goes straight to that card’s full-screen QR code, which suits staff phones and a shared booth tablet. **Search the team** on the QR screen still reaches the search, and **Remove default** on the card undoes it. Hidden cards never appear in the search.
 
+## Address book
+
+Signed-in staff have an **Address book** (button in the editor, or card.aiacanada.com/contacts.html). Contacts get in two ways:
+- **From the card:** anyone viewing a card can select **Share your details with…**, fill in their name, company, email or phone, and agree to share. They can also opt in to news and updates. Their details go straight into that staff member’s address book. They can’t see anyone else’s details.
+- **Added by hand,** with notes and an event tag.
+
+Contacts are private to their owner. The owner can turn on **Share with team** for a contact, which shows it, read-only, to every signed-in AIA Canada and I-CAR Canada staff member. Admins can’t see private contacts. Staff can save any contact to their phone and export their list to CSV.
+
+Consent records: each card-exchange contact keeps the date and wording version (`consent_version`) of what they agreed to, and when they opted in to updates. Staff can opt someone out of updates but can’t opt them back in. Only people marked **OK to send updates** should be added to marketing emails (CASL). If the consent wording on the card changes, update `consent_version` in `submit_contact()`.
+
 ## “My card” on staff phones
 
 In the editor, **Open my phone card** opens the person’s card in phone mode (`/their-name?me=1`). Added to the home screen, the icon opens straight to a full-screen QR code at `/my-card`, keeps the screen awake while it’s showing, and works with no signal. The card details refresh whenever the phone is online. The QR code always points to the same card link, so it never needs updating.
@@ -121,4 +133,4 @@ Every tag stores only the person’s card link, so it never needs rewriting when
 
 ## Updating the site
 
-Every page loads `shared.js`, `config.js` and `styles.css` with a version tag (for example `/shared.js?v=20261027d`). After changing any of those three files, change the tag to a new value in `index.html`, `edit.html`, `admin.html`, `404.html` and `sw.js`. Otherwise phones and browsers can keep an old copy for a while and pages break until it expires.
+Every page loads `shared.js`, `config.js` and `styles.css` with a version tag (for example `/shared.js?v=20261027e`). After changing any of those three files, change the tag to a new value in `index.html`, `edit.html`, `admin.html`, `404.html` and `sw.js`. Otherwise phones and browsers can keep an old copy for a while and pages break until it expires.

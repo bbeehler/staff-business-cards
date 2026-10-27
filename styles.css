@@ -174,3 +174,38 @@ td .btn, td:nth-child(5), td a { white-space: nowrap; }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
 .back-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 700; text-decoration: none; color: var(--ink); }
 .back-link:hover span:last-child { text-decoration: underline; }
+
+/* ---------- Contact exchange form (card page) ---------- */
+textarea { font: inherit; font-size: 16px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface); color: var(--ink); resize: vertical; }
+textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.xform { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); display: grid; gap: 12px; }
+.xform h2 { margin: 0; font-size: 20px; }
+.xform .hint { margin: 0; }
+.xgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.xgrid .full { grid-column: 1 / -1; }
+@media (max-width: 460px) { .xgrid { grid-template-columns: 1fr; } }
+.xform .check { font-size: 15px; line-height: 1.4; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.xdone { font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--bg); }
+
+/* ---------- Address book ---------- */
+.ab-tools { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+@media (max-width: 460px) { .ab-tools { grid-template-columns: 1fr; } }
+.ab-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.ab-item { width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; display: grid; gap: 2px;
+  padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.ab-item:hover, .ab-item:focus-visible { border-color: var(--accent); }
+.ab-item strong { font-size: 17px; }
+.ab-sub { font-size: 15px; }
+.ab-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.ab-sheet { position: fixed; inset: 0; z-index: 30; background: rgba(15, 23, 42, .45); display: grid; align-items: end; justify-items: center; overflow-y: auto; }
+@media (min-width: 640px) { .ab-sheet { align-items: center; padding: 24px; } }
+.ab-panel { width: 100%; max-width: 620px; background: var(--surface); border-radius: 18px 18px 0 0;
+  padding: 20px 18px max(20px, env(safe-area-inset-bottom)); display: grid; gap: 12px; }
+@media (min-width: 640px) { .ab-panel { border-radius: 18px; } }
+.ab-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.ab-head h2 { margin: 0; }
+.ab-x { width: 44px; height: 44px; flex: none; border: 0; border-radius: 50%; background: var(--bg); color: var(--ink); font-size: 24px; cursor: pointer; }
+.ab-panel .hint { margin: 0; }
+.ab-panel input[readonly], .ab-panel textarea[readonly] { background: var(--bg); }
