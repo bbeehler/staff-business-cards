@@ -137,6 +137,13 @@
     if (p.show_mobile && p.mobile) L.append(link(t("mobile"), p.mobile, K.telHref(p.mobile)));
     if (p.linkedin) L.append(link(t("linkedin"), p.linkedin.replace(/^https?:\/\/(www\.)?/i, ""), K.withScheme(p.linkedin), true));
     L.append(link(t("website"), b.webLabel, b.web, true));
+    const addr = document.createElement("div");
+    addr.className = "static";
+    const al = document.createElement("span"); al.textContent = t("address");
+    const av = document.createElement("span");
+    K.addressLines().forEach((line, i) => { if (i) av.append(document.createElement("br")); av.append(line); });
+    addr.append(al, av);
+    L.append(addr);
 
     const open = !$("shareBox").hidden;
     $("shareBtn").textContent = open ? t("hideQr") : t("shareCard");

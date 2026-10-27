@@ -8,6 +8,8 @@ const BRANDS: Record<string, { name: string; web: string }> = {
   aia: { name: "AIA Canada", web: "https://aiacanada.com" },
   icar: { name: "I-CAR Canada", web: "https://i-car.ca" },
 };
+// Mailing address, the same for every AIA Canada and I-CAR Canada card (matches shared.js).
+const ADDRESS = { street: "PO Box 11356 STN H", city: "Nepean", region: "ON", postal: "K2H 7V1", country: "Canada" };
 const SITE_URL = (Deno.env.get("CARD_SITE_URL") ?? "https://card.aiacanada.com").replace(/\/$/, "");
 
 const esc = (v: string) =>
@@ -41,6 +43,7 @@ Deno.serve(async (req) => {
   L.push(`EMAIL;TYPE=INTERNET,WORK:${p.email}`);
   if (p.work_phone) L.push(`TEL;TYPE=WORK,VOICE:${digits(p.work_phone)}${p.work_ext ? "," + String(p.work_ext).replace(/\D/g, "") : ""}`);
   if (p.show_mobile && p.mobile) L.push(`TEL;TYPE=CELL:${digits(p.mobile)}`);
+  L.push(`ADR;TYPE=WORK,POSTAL:;;${esc(ADDRESS.street)};${esc(ADDRESS.city)};${esc(ADDRESS.region)};${esc(ADDRESS.postal)};${esc(ADDRESS.country)}`);
   L.push(`URL;TYPE=WORK:${b.web}`);
   if (p.linkedin) L.push(`X-SOCIALPROFILE;TYPE=linkedin:${withScheme(p.linkedin)}`);
   L.push(`NOTE:${esc(SITE_URL + "/" + p.slug)}`);

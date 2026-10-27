@@ -106,6 +106,8 @@ input:focus-visible, button:focus-visible, select:focus-visible, a:focus-visible
 .card-links { margin-top: 20px; display: grid; gap: 2px; }
 .card-links a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); text-decoration: none; }
 .card-links a span:last-child { text-align: right; overflow-wrap: anywhere; font-weight: 700; }
+.card-links .static { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.card-links .static span:last-child { text-align: right; font-weight: 700; }
 .share { margin-top: 18px; text-align: center; }
 .share .qr { margin: 14px auto 6px; width: 220px; }
 .foot { text-align: center; font-size: 13px; opacity: .75; margin-top: 18px; }

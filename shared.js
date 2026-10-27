@@ -21,6 +21,16 @@
     }
   };
 
+  // Mailing address, the same for every AIA Canada and I-CAR Canada card.
+  const ADDRESS = {
+    street: "PO Box 11356 STN H",
+    city: "Nepean",
+    region: "ON",
+    postal: "K2H 7V1",
+    country: "Canada"
+  };
+  const addressLines = () => [ADDRESS.street, ADDRESS.city + ", " + ADDRESS.region + " " + ADDRESS.postal, ADDRESS.country];
+
   const T = {
     en: {
       // public card
@@ -29,6 +39,7 @@
       call: "Call",
       mobile: "Mobile",
       website: "Website",
+      address: "Mailing address",
       linkedin: "LinkedIn",
       shareCard: "Share this card",
       hideQr: "Hide QR code",
@@ -115,6 +126,7 @@
       call: "Appeler",
       mobile: "Cellulaire",
       website: "Site Web",
+      address: "Adresse postale",
       linkedin: "LinkedIn",
       shareCard: "Partager cette carte",
       hideQr: "Masquer le code QR",
@@ -272,6 +284,8 @@
       L.push("TEL;TYPE=WORK,VOICE:" + n + (p.work_ext ? "," + String(p.work_ext).replace(/\D/g, "") : ""));
     }
     if (p.show_mobile && p.mobile) L.push("TEL;TYPE=CELL:" + String(p.mobile).replace(/[^\d+]/g, ""));
+    L.push("ADR;TYPE=WORK,POSTAL:;;" + esc(ADDRESS.street) + ";" + esc(ADDRESS.city) + ";" + esc(ADDRESS.region) + ";" +
+      esc(ADDRESS.postal) + ";" + esc(ADDRESS.country));
     L.push("URL;TYPE=WORK:" + b.web);
     if (p.linkedin) L.push("X-SOCIALPROFILE;TYPE=linkedin:" + withScheme(p.linkedin));
     L.push("NOTE:" + esc(cardUrl(p.slug)));
@@ -347,7 +361,7 @@
   }
 
   window.Cards = {
-    C, BRANDS, T, configured, client, siteUrl, cardUrl, photoUrl, emailAllowed, slugify, title,
+    C, BRANDS, ADDRESS, addressLines, T, configured, client, siteUrl, cardUrl, photoUrl, emailAllowed, slugify, title,
     withScheme, telHref, vcard, qrSvg, qrPng, download, squareJpeg, fetchBase64
   };
 })();
