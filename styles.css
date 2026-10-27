@@ -169,3 +169,8 @@ td .btn, td:nth-child(5), td a { white-space: nowrap; }
 .default-row { margin-top: 14px; text-align: center; font-size: 14px; }
 .default-row .linkbtn { font-size: 14px; }
 .me-search { display: inline-block; margin-top: 18px; color: #fff; opacity: .9; font-size: 15px; }
+
+/* ---------- Card page: back to team search ---------- */
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.back-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 700; text-decoration: none; color: var(--ink); }
+.back-link:hover span:last-child { text-decoration: underline; }

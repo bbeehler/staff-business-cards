@@ -7,16 +7,17 @@
 <title>Business card</title>
 <link rel="icon" href="/assets/aia-canada-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;700&display=swap">
-<link rel="stylesheet" href="/styles.css?v=20261027c">
+<link rel="stylesheet" href="/styles.css?v=20261027d">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/config.js?v=20261027c"></script>
-<script src="/shared.js?v=20261027c"></script>
+<script src="/config.js?v=20261027d"></script>
+<script src="/shared.js?v=20261027d"></script>
 </head>
 <body>
 <!-- GitHub Pages serves this file for every card address, such as /brian-beehler. -->
 <main class="card-page">
-  <div style="display:flex; justify-content:flex-end; margin-bottom:12px">
+  <div class="card-top">
+    <a class="back-link" id="backLink" href="/?browse=1"><span aria-hidden="true">←</span> <span id="backText">Search the team</span></a>
     <div class="seg" role="group" aria-label="Language" id="langSeg">
       <button type="button" data-lang="en" aria-pressed="true">EN</button>
       <button type="button" data-lang="fr" aria-pressed="false">FR</button>
@@ -111,6 +112,7 @@
     $("message").hidden = false;
     $("msgTitle").textContent = titleKey ? t(titleKey) : "";
     $("msgBody").textContent = t(bodyKey);
+    $("backText").textContent = t("searchTeam");
   }
 
   function link(label, value, href, external) {
@@ -125,6 +127,7 @@
 
   function render() {
     document.documentElement.lang = lang;
+    $("backText").textContent = t("searchTeam");
     document.querySelectorAll("#langSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
     if (!p) return;
     const b = K.BRANDS[p.org] || K.BRANDS.aia;

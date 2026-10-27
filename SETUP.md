@@ -121,4 +121,4 @@ Every tag stores only the person’s card link, so it never needs rewriting when
 
 ## Updating the site
 
-Every page loads `shared.js`, `config.js` and `styles.css` with a version tag (for example `/shared.js?v=20261027c`). After changing any of those three files, change the tag to a new value in `index.html`, `edit.html`, `admin.html`, `404.html` and `sw.js`. Otherwise phones and browsers can keep an old copy for a while and pages break until it expires.
+Every page loads `shared.js`, `config.js` and `styles.css` with a version tag (for example `/shared.js?v=20261027d`). After changing any of those three files, change the tag to a new value in `index.html`, `edit.html`, `admin.html`, `404.html` and `sw.js`. Otherwise phones and browsers can keep an old copy for a while and pages break until it expires.

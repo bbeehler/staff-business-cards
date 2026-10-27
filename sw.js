@@ -2,9 +2,9 @@
 // Registered only from the owner's phone card (/my-card or /<slug>?me=1).
 // Network first, so details stay current; the cache is only a fallback.
 // Never touches Supabase requests: sign-in and data always go to the network.
-const CACHE = "staff-card-v3";
+const CACHE = "staff-card-v4";
 const SHELL = [
-  "/404.html", "/styles.css?v=20261027c", "/config.js?v=20261027c", "/shared.js?v=20261027c",
+  "/404.html", "/styles.css?v=20261027d", "/config.js?v=20261027d", "/shared.js?v=20261027d",
   "/assets/aia-canada-logo.png", "/assets/icar-canada-logo.png",
   "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
