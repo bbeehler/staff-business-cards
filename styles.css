@@ -1,0 +1,121 @@
+/* Brand values:
+   AIA Canada Visual Identity Guidelines (2024-10-22): Dark Blue #192B56, Red #E21C47,
+   Light Blue #84C8E3, Blue Tint #F2F7FA; typeface Sofia Pro.
+   I-CAR Canada Branding Guidelines (2022): Blue #0B7AC0, Black #221F20, Red #B42025;
+   Helvetica Neue, then Arial, Source Sans.
+   Pages stay light so the official full-colour logos sit on the background they were made for.
+
+   Sofia Pro: if AIA Canada licenses the web font, add the files to /assets/fonts and
+   uncomment the @font-face rule below. Until then, Arial is used. */
+/*
+@font-face { font-family: "Sofia Pro"; src: url("/assets/fonts/SofiaPro-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Sofia Pro"; src: url("/assets/fonts/SofiaPro-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+*/
+
+:root {
+  --aia-blue: #192B56; --aia-red: #E21C47; --aia-light: #84C8E3; --aia-tint: #F2F7FA;
+  --icar-blue: #0B7AC0; --icar-black: #221F20; --icar-red: #B42025;
+
+  --bg: var(--aia-tint); --surface: #FFFFFF; --ink: var(--aia-blue); --soft: var(--aia-red);
+  --line: #C9D6E2; --accent: var(--aia-blue); --accent-ink: #FFFFFF; --focus: var(--aia-red);
+  --font: "Sofia Pro", "sofia-pro", Arial, sans-serif;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+:root[data-org="icar"] {
+  --bg: #F4F5F6; --ink: var(--icar-black); --soft: var(--icar-blue);
+  --line: #D2D5D8; --accent: var(--icar-blue); --focus: var(--icar-blue);
+  --font: "Helvetica Neue", Helvetica, Arial, "Source Sans 3", sans-serif;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.5; }
+img { max-width: 100%; }
+a { color: inherit; }
+.wrap { max-width: 600px; margin: 0 auto; padding: 20px 18px 64px; }
+.wrap.wide { max-width: 1040px; }
+[hidden] { display: none !important; }
+
+h1 { font-size: 28px; line-height: 1.15; font-weight: 700; margin: 24px 0 8px; }
+h2 { font-size: 20px; font-weight: 700; margin: 36px 0 6px; }
+.muted { opacity: .8; }
+.hint { font-size: 14px; opacity: .8; margin: 4px 0 0; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.topbar .logo { height: 44px; width: auto; display: block; }
+:root[data-org="icar"] .topbar .logo { height: 36px; }
+.topbar .right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.seg button { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--ink); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+
+.btn { font: inherit; font-weight: 700; border-radius: 8px; padding: 12px 18px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.btn.secondary { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn.small { padding: 7px 12px; font-size: 14px; }
+.btn.danger { background: var(--surface); color: var(--aia-red); border-color: var(--aia-red); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.linkbtn { font: inherit; background: none; border: 0; color: var(--ink); text-decoration: underline; cursor: pointer; padding: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.full { grid-column: 1 / -1; }
+@media (max-width: 460px) { .grid { grid-template-columns: 1fr; } }
+label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+input[type="text"], input[type="email"], input[type="tel"], input[type="url"], input[type="search"], select {
+  width: 100%; font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+input[readonly] { background: var(--bg); }
+input[aria-invalid="true"] { border-color: var(--aia-red); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+.check input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent); }
+.prefix { display: flex; align-items: stretch; }
+.prefix span { display: flex; align-items: center; padding: 0 10px; border: 1px solid var(--line); border-right: 0;
+  border-radius: 8px 0 0 8px; background: var(--bg); font-size: 14px; white-space: nowrap; }
+.prefix input { border-radius: 0 8px 8px 0; }
+input:focus-visible, button:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.status { min-height: 22px; font-size: 14px; margin-top: 10px; }
+.status.error { color: var(--aia-red); }
+
+.photo-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--bg); border: 1px solid var(--line); }
+
+.qr { width: 200px; max-width: 100%; aspect-ratio: 1; }
+.qr svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- Public card page ---------- */
+.card-page { max-width: 460px; margin: 0 auto; padding: 18px 16px 40px; }
+.card { background: #fff; border-radius: 18px; overflow: hidden; position: relative;
+  border: 1px solid rgba(25, 43, 86, .12); box-shadow: 0 20px 44px -26px rgba(25, 43, 86, .6); }
+.card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--accent); }
+.card-head { padding: 26px 24px 0 30px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.card-head .logo { height: 72px; width: auto; display: block; }
+:root[data-org="icar"] .card-head .logo { height: 52px; }
+.card-body { padding: 22px 24px 26px 30px; }
+.card-photo { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; display: block; margin-bottom: 16px; }
+.card-name { font-size: 28px; font-weight: 700; line-height: 1.12; margin: 0; }
+.card-title { color: var(--soft); font-weight: 700; margin: 6px 0 0; }
+.card-org { margin: 2px 0 0; }
+.card-actions { display: grid; gap: 10px; margin-top: 24px; }
+.card-actions .btn { width: 100%; }
+.card-links { margin-top: 20px; display: grid; gap: 2px; }
+.card-links a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); text-decoration: none; }
+.card-links a span:last-child { text-align: right; overflow-wrap: anywhere; font-weight: 700; }
+.share { margin-top: 18px; text-align: center; }
+.share .qr { margin: 14px auto 6px; width: 220px; }
+.foot { text-align: center; font-size: 13px; opacity: .75; margin-top: 18px; }
+
+/* ---------- Admin ---------- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; font-size: 15px; }
+th { font-size: 14px; }
+td .actions { gap: 6px; flex-wrap: nowrap; }
+.pill { display: inline-block; font-size: 13px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); }
+.pill.off { opacity: .6; }
+td .btn, td:nth-child(5), td a { white-space: nowrap; }

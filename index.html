@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Digital business card</title>
+<link rel="icon" href="/assets/aia-canada-logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js"></script>
+<script src="/shared.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <img class="logo" id="topLogo" src="/assets/aia-canada-logo.png" alt="AIA Canada">
+    <div class="right">
+      <a class="btn secondary small" id="adminLink" href="/admin.html" hidden data-i18n="admin"></a>
+      <button class="linkbtn" type="button" id="signOut" hidden data-i18n="signOut"></button>
+      <div class="seg" role="group" aria-label="Language" id="langSeg">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="fr" aria-pressed="false">FR</button>
+      </div>
+    </div>
+  </header>
+
+  <h1 data-i18n="appTitle"></h1>
+
+  <!-- Not configured -->
+  <section id="setup" class="panel" hidden><p data-i18n="setupNeeded" style="margin:0"></p></section>
+
+  <!-- Signed out -->
+  <section id="signedOut" hidden>
+    <p data-i18n="signInIntro"></p>
+    <button class="btn" type="button" id="signIn" data-i18n="signIn"></button>
+  </section>
+
+  <!-- Signed in with a non-staff account -->
+  <section id="notStaff" class="panel" hidden><p data-i18n="notStaff" style="margin:0"></p></section>
+
+  <!-- Editor -->
+  <section id="editor" hidden>
+    <form id="form" class="panel" novalidate>
+      <div class="grid">
+        <div class="full">
+          <label data-i18n="organization"></label>
+          <div class="seg" role="group" id="orgSeg">
+            <button type="button" data-org="aia" aria-pressed="true">AIA Canada</button>
+            <button type="button" data-org="icar" aria-pressed="false">I-CAR Canada</button>
+          </div>
+        </div>
+        <div><label for="first_name" data-i18n="first"></label><input type="text" id="first_name" required maxlength="60" autocomplete="given-name"></div>
+        <div><label for="last_name" data-i18n="last"></label><input type="text" id="last_name" required maxlength="60" autocomplete="family-name"></div>
+        <div class="full"><label for="title_en" data-i18n="titleEn"></label><input type="text" id="title_en" maxlength="120"></div>
+        <div class="full"><label for="title_fr" data-i18n="titleFr"></label><input type="text" id="title_fr" maxlength="120"></div>
+        <div class="full">
+          <label for="email" data-i18n="workEmail"></label>
+          <input type="email" id="email" readonly>
+          <p class="hint" data-i18n="workEmailHint"></p>
+        </div>
+        <div><label for="work_phone" data-i18n="workPhone"></label><input type="tel" id="work_phone" maxlength="40" inputmode="tel"></div>
+        <div><label for="work_ext" data-i18n="workExt"></label><input type="text" id="work_ext" maxlength="10" inputmode="numeric"></div>
+        <div><label for="mobile" data-i18n="mobileLabel"></label><input type="tel" id="mobile" maxlength="40" inputmode="tel"></div>
+        <div style="align-self:end"><label class="check"><input type="checkbox" id="show_mobile"><span data-i18n="showMobile"></span></label></div>
+        <div class="full"><label for="linkedin" data-i18n="linkedinLabel"></label><input type="url" id="linkedin" maxlength="200" inputmode="url" placeholder="linkedin.com/in/…"></div>
+        <div class="full">
+          <label for="photoInput" data-i18n="photo"></label>
+          <div class="photo-row">
+            <img class="avatar" id="avatar" alt="" hidden>
+            <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp">
+            <button class="linkbtn" type="button" id="removePhoto" hidden data-i18n="removePhoto"></button>
+          </div>
+          <p class="hint" data-i18n="photoHint"></p>
+        </div>
+        <div>
+          <label for="lang" data-i18n="cardLanguage"></label>
+          <select id="lang"><option value="en">English</option><option value="fr">Français</option></select>
+        </div>
+        <div>
+          <label for="slug" data-i18n="slug"></label>
+          <div class="prefix"><span id="slugPrefix"></span><input type="text" id="slug" maxlength="60" autocapitalize="off" spellcheck="false"></div>
+        </div>
+        <div class="full">
+          <label class="check"><input type="checkbox" id="published" checked><span data-i18n="publishedLabel"></span></label>
+          <p class="hint" data-i18n="publishedHint"></p>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:20px"><button class="btn" type="submit" id="saveBtn" data-i18n="saveCard"></button></div>
+      <div class="status" id="formStatus" aria-live="polite"></div>
+    </form>
+
+    <section id="share">
+      <h2 data-i18n="yourCard"></h2>
+      <p class="hint" id="shareHint"></p>
+      <div id="shareBody" hidden>
+        <div class="panel" style="display:grid; gap:16px; margin-top:12px">
+          <a id="cardLink" style="font-weight:700; overflow-wrap:anywhere" target="_blank" rel="noopener"></a>
+          <div class="qr" id="qr"></div>
+          <div class="actions">
+            <button class="btn" type="button" id="copyLink" data-i18n="copyLink"></button>
+            <a class="btn secondary" id="openCard" target="_blank" rel="noopener" data-i18n="openCard"></a>
+            <button class="btn secondary" type="button" id="dlQr" data-i18n="downloadQr"></button>
+          </div>
+          <div class="status" id="shareStatus" aria-live="polite"></div>
+        </div>
+
+        <h2 data-i18n="nfcTitle"></h2>
+        <div class="panel">
+          <div id="nfcWrite" hidden>
+            <button class="btn" type="button" id="writeNfc" data-i18n="writeNfc"></button>
+            <div class="status" id="nfcStatus" aria-live="polite"></div>
+          </div>
+          <p id="nfcOther" data-i18n="nfcOther" style="margin:0"></p>
+          <p class="hint" data-i18n="nameDrop" style="margin-top:12px"></p>
+        </div>
+      </div>
+    </section>
+  </section>
+</div>
+
+<script>
+(async function () {
+  const K = window.Cards;
+  const $ = id => document.getElementById(id);
+  const FIELDS = ["first_name", "last_name", "title_en", "title_fr", "email", "work_phone", "work_ext", "mobile", "linkedin", "slug"];
+  let lang = (navigator.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+  let sb = null, session = null, profile = null, editingId = null, org = "aia";
+  let pendingPhoto = null, removePhoto = false, slugTouched = false;
+
+  try { const s = localStorage.getItem("card-ui-lang"); if (s === "en" || s === "fr") lang = s; } catch (e) {}
+  const t = k => K.T[lang][k];
+
+  function applyText() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll("#langSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    $("slugPrefix").textContent = K.siteUrl().replace(/^https?:\/\//, "") + "/";
+    $("shareHint").textContent = profile ? t("yourCardHint") : t("saveFirst");
+  }
+
+  function setOrg(o) {
+    org = o;
+    document.documentElement.dataset.org = o;
+    const b = K.BRANDS[o];
+    $("topLogo").src = b.logo; $("topLogo").alt = b.name;
+    document.querySelectorAll("#orgSeg button").forEach(btn => btn.setAttribute("aria-pressed", String(btn.dataset.org === o)));
+  }
+
+  function show(id) {
+    ["setup", "signedOut", "notStaff", "editor"].forEach(s => $(s).hidden = s !== id);
+    $("signOut").hidden = !session;
+  }
+
+  function fill(p) {
+    FIELDS.forEach(f => { $(f).value = p[f] || ""; });
+    $("show_mobile").checked = !!p.show_mobile;
+    $("published").checked = p.published !== false;
+    $("lang").value = p.lang || lang;
+    setOrg(p.org || "aia");
+    const ph = K.photoUrl(p);
+    $("avatar").hidden = !ph; if (ph) $("avatar").src = ph;
+    $("removePhoto").hidden = !ph;
+  }
+
+  function renderShare() {
+    $("shareBody").hidden = !profile;
+    $("shareHint").textContent = profile ? t("yourCardHint") : t("saveFirst");
+    if (!profile) return;
+    const url = K.cardUrl(profile.slug);
+    $("cardLink").textContent = url; $("cardLink").href = url; $("openCard").href = url;
+    $("qr").innerHTML = K.qrSvg(url, 2);
+    $("nfcWrite").hidden = !("NDEFReader" in window);
+  }
+
+  async function loadProfile() {
+    const isAdmin = await checkAdmin();
+    $("adminLink").hidden = !isAdmin;
+    const qid = new URLSearchParams(location.search).get("id");
+    editingId = (qid && isAdmin) ? qid : session.user.id;
+    const { data } = await sb.from("profiles").select("*").eq("id", editingId).maybeSingle();
+    profile = data || null;
+    if (profile) { fill(profile); slugTouched = true; }
+    else {
+      const m = session.user.user_metadata || {};
+      const full = (m.full_name || m.name || "").trim().split(/\s+/);
+      fill({ first_name: m.given_name || full[0] || "", last_name: m.family_name || full.slice(1).join(" ") || "",
+             email: session.user.email, org: "aia", lang, published: true });
+      $("slug").value = K.slugify($("first_name").value, $("last_name").value);
+    }
+    renderShare();
+  }
+
+  async function checkAdmin() {
+    const { data } = await sb.from("admins").select("email").limit(1);
+    return !!(data && data.length);
+  }
+
+  async function onSession(s) {
+    session = s;
+    if (!session) { show("signedOut"); return; }
+    if (!K.emailAllowed(session.user.email)) { show("notStaff"); return; }
+    show("editor");
+    await loadProfile();
+  }
+
+  // ---------- Events ----------
+  document.querySelectorAll("#langSeg button").forEach(b => b.addEventListener("click", () => {
+    lang = b.dataset.lang; try { localStorage.setItem("card-ui-lang", lang); } catch (e) {}
+    applyText();
+  }));
+  document.querySelectorAll("#orgSeg button").forEach(b => b.addEventListener("click", () => setOrg(b.dataset.org)));
+
+  ["first_name", "last_name"].forEach(f => $(f).addEventListener("input", () => {
+    if (!slugTouched) $("slug").value = K.slugify($("first_name").value, $("last_name").value);
+  }));
+  $("slug").addEventListener("input", () => {
+    slugTouched = true;
+    $("slug").value = $("slug").value.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  });
+
+  $("photoInput").addEventListener("change", async e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      pendingPhoto = await K.squareJpeg(f, 480); removePhoto = false;
+      $("avatar").src = URL.createObjectURL(pendingPhoto); $("avatar").hidden = false; $("removePhoto").hidden = false;
+    } catch (err) { pendingPhoto = null; }
+  });
+  $("removePhoto").addEventListener("click", () => {
+    pendingPhoto = null; removePhoto = true; $("photoInput").value = "";
+    $("avatar").hidden = true; $("removePhoto").hidden = true;
+  });
+
+  $("signIn").addEventListener("click", () => {
+    sb.auth.signInWithOAuth({ provider: "azure", options: { scopes: "email openid profile", redirectTo: K.siteUrl() + "/" } });
+  });
+  $("signOut").addEventListener("click", async () => { await sb.auth.signOut(); profile = null; onSession(null); });
+
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const st = $("formStatus"); st.className = "status";
+    let bad = false;
+    ["first_name", "last_name", "slug"].forEach(f => {
+      const v = $(f).value.trim();
+      const invalid = !v || (f === "slug" && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(v) || (f === "slug" && v.length < 3));
+      $(f).setAttribute("aria-invalid", String(!!invalid)); if (invalid) bad = true;
+    });
+    if (bad) { st.textContent = t("saveError"); st.className = "status error"; return; }
+
+    $("saveBtn").disabled = true; st.textContent = t("saving");
+    const row = { id: editingId, org, lang: $("lang").value, show_mobile: $("show_mobile").checked, published: $("published").checked };
+    FIELDS.forEach(f => { const v = $(f).value.trim(); row[f] = v || null; });
+    row.email = profile ? profile.email : session.user.email;
+    row.photo_path = profile ? profile.photo_path : null;
+
+    try {
+      if (pendingPhoto) {
+        const path = editingId + "/photo.jpg";
+        const up = await sb.storage.from("photos").upload(path, pendingPhoto, { upsert: true, contentType: "image/jpeg", cacheControl: "3600" });
+        if (up.error) throw up.error;
+        row.photo_path = path;
+      } else if (removePhoto && row.photo_path) {
+        await sb.storage.from("photos").remove([row.photo_path]);
+        row.photo_path = null;
+      }
+      const { data, error } = await sb.from("profiles").upsert(row, { onConflict: "id" }).select().single();
+      if (error) throw error;
+      profile = data; pendingPhoto = null; removePhoto = false; slugTouched = true;
+      fill(profile); renderShare();
+      st.textContent = t("saved");
+    } catch (err) {
+      st.className = "status error";
+      if (err && err.code === "23505") { st.textContent = t("slugTaken"); $("slug").setAttribute("aria-invalid", "true"); }
+      else st.textContent = t("saveError");
+    } finally { $("saveBtn").disabled = false; }
+  });
+
+  $("copyLink").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(K.cardUrl(profile.slug)); $("shareStatus").textContent = t("copied"); }
+    catch (e) { $("shareStatus").textContent = K.cardUrl(profile.slug); }
+  });
+  $("dlQr").addEventListener("click", async () => {
+    const b = K.BRANDS[profile.org];
+    const blob = await K.qrPng(K.cardUrl(profile.slug), [profile.first_name + " " + profile.last_name, b.name], b.ink);
+    K.download(profile.slug + "-qr.png", blob);
+  });
+  $("writeNfc").addEventListener("click", async () => {
+    const st = $("nfcStatus"); st.className = "status"; st.textContent = t("nfcReady");
+    try {
+      const w = new NDEFReader();
+      await w.write({ records: [{ recordType: "url", data: K.cardUrl(profile.slug) }] });
+      st.textContent = t("nfcDone");
+    } catch (err) { st.className = "status error"; st.textContent = t("nfcFail"); }
+  });
+
+  // ---------- Start ----------
+  applyText();
+  if (!K.configured()) { show("setup"); return; }
+  sb = K.client();
+  const { data } = await sb.auth.getSession();
+  sb.auth.onAuthStateChange((evt, s) => { if (evt === "SIGNED_IN" && (!session || session.user.id !== s.user.id)) onSession(s); });
+  onSession(data.session);
+})();
+</script>
+</body>
+</html>

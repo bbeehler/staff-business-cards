@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Business card</title>
+<link rel="icon" href="/assets/aia-canada-logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js"></script>
+<script src="/shared.js"></script>
+</head>
+<body>
+<!-- GitHub Pages serves this file for every card address, such as /brian-beehler. -->
+<main class="card-page">
+  <div style="display:flex; justify-content:flex-end; margin-bottom:12px">
+    <div class="seg" role="group" aria-label="Language" id="langSeg">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="fr" aria-pressed="false">FR</button>
+    </div>
+  </div>
+
+  <article class="card" id="card" hidden>
+    <div class="card-head"><img class="logo" id="logo" alt=""></div>
+    <div class="card-body">
+      <img class="card-photo" id="photo" alt="" hidden>
+      <h1 class="card-name" id="name"></h1>
+      <p class="card-title" id="title"></p>
+      <p class="card-org" id="org"></p>
+
+      <div class="card-actions">
+        <button class="btn" type="button" id="save"></button>
+      </div>
+
+      <nav class="card-links" id="links" aria-label="Contact"></nav>
+
+      <div class="share">
+        <button class="linkbtn" type="button" id="shareBtn" aria-expanded="false"></button>
+        <div id="shareBox" hidden>
+          <div class="qr" id="qr"></div>
+          <div class="hint" id="scanHint"></div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <section class="panel" id="message" hidden>
+    <h1 id="msgTitle" style="margin-top:0"></h1>
+    <p id="msgBody" style="margin-bottom:0"></p>
+  </section>
+</main>
+
+<script>
+(async function () {
+  const K = window.Cards;
+  const $ = id => document.getElementById(id);
+  const parts = location.pathname.split("/").filter(Boolean);
+  const slug = (new URLSearchParams(location.search).get("u") || parts[0] || "").toLowerCase();
+  let p = null;
+  let lang = (navigator.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+  let photoB64 = null;
+
+  function t(k) { return K.T[lang][k]; }
+
+  function showMessage(titleKey, bodyKey) {
+    $("card").hidden = true;
+    $("message").hidden = false;
+    $("msgTitle").textContent = titleKey ? t(titleKey) : "";
+    $("msgBody").textContent = t(bodyKey);
+  }
+
+  function link(label, value, href, external) {
+    const a = document.createElement("a");
+    a.href = href;
+    if (external) { a.target = "_blank"; a.rel = "noopener"; }
+    const l = document.createElement("span"); l.textContent = label;
+    const v = document.createElement("span"); v.textContent = value;
+    a.append(l, v);
+    return a;
+  }
+
+  function render() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("#langSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    if (!p) return;
+    const b = K.BRANDS[p.org] || K.BRANDS.aia;
+    document.documentElement.dataset.org = p.org;
+    document.title = p.first_name + " " + p.last_name + ", " + b.name;
+    $("logo").src = b.logo; $("logo").alt = b.name;
+    const ph = K.photoUrl(p);
+    $("photo").hidden = !ph; if (ph) { $("photo").src = ph; $("photo").alt = p.first_name + " " + p.last_name; }
+    $("name").textContent = p.first_name + " " + p.last_name;
+    $("title").textContent = K.title(p, lang);
+    $("title").hidden = !K.title(p, lang);
+    $("org").textContent = b.name;
+    $("save").textContent = t("save");
+
+    const L = $("links"); L.innerHTML = "";
+    L.append(link(t("email"), p.email, "mailto:" + p.email));
+    if (p.work_phone) L.append(link(t("call"), p.work_phone + (p.work_ext ? " " + t("ext") + " " + p.work_ext : ""), K.telHref(p.work_phone, p.work_ext)));
+    if (p.show_mobile && p.mobile) L.append(link(t("mobile"), p.mobile, K.telHref(p.mobile)));
+    if (p.linkedin) L.append(link(t("linkedin"), p.linkedin.replace(/^https?:\/\/(www\.)?/i, ""), K.withScheme(p.linkedin), true));
+    L.append(link(t("website"), b.webLabel, b.web, true));
+
+    const open = !$("shareBox").hidden;
+    $("shareBtn").textContent = open ? t("hideQr") : t("shareCard");
+    $("scanHint").textContent = t("scanToSave");
+    $("card").hidden = false; $("message").hidden = true;
+  }
+
+  document.querySelectorAll("#langSeg button").forEach(btn => btn.addEventListener("click", () => {
+    lang = btn.dataset.lang;
+    if (!p) { showMessage(K.configured() ? "notFoundTitle" : null, K.configured() ? "notFoundBody" : "setupNeeded"); render(); }
+    else render();
+  }));
+
+  $("shareBtn").addEventListener("click", () => {
+    const box = $("shareBox"); box.hidden = !box.hidden;
+    $("shareBtn").setAttribute("aria-expanded", String(!box.hidden));
+    if (!box.hidden && !$("qr").innerHTML) $("qr").innerHTML = K.qrSvg(K.cardUrl(p.slug), 2);
+    render();
+  });
+
+  $("save").addEventListener("click", async () => {
+    if (!p) return;
+    if (K.C.vcardFunctionUrl) {
+      location.href = K.C.vcardFunctionUrl + "?u=" + encodeURIComponent(p.slug) + "&lang=" + lang;
+      return;
+    }
+    if (photoB64 === null) photoB64 = p.photo_path ? await K.fetchBase64(K.photoUrl(p)) : "";
+    const blob = new Blob([K.vcard(p, lang, photoB64)], { type: "text/vcard;charset=utf-8" });
+    K.download(p.slug + ".vcf", blob);
+  });
+
+  if (!K.configured()) { showMessage(null, "setupNeeded"); return; }
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) { showMessage("notFoundTitle", "notFoundBody"); return; }
+
+  const sb = K.client();
+  const { data, error } = await sb.from("profiles").select("*").eq("slug", slug).eq("published", true).maybeSingle();
+  if (error || !data) { showMessage("notFoundTitle", "notFoundBody"); return; }
+  p = data;
+  const qLang = new URLSearchParams(location.search).get("lang");
+  lang = qLang === "fr" || qLang === "en" ? qLang : p.lang;
+  render();
+})();
+</script>
+</body>
+</html>
