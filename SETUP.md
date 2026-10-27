@@ -8,7 +8,8 @@ This guide sets up the AIA Canada and I-CAR Canada staff business card site at *
 
 | File | What it does |
 |---|---|
-| `index.html` | Where staff register or sign in with their work email and build their card |
+| `index.html` | The main page at card.aiacanada.com: search the team and open anyone’s card. A phone with a default card opens it automatically |
+| `edit.html` | Where staff register or sign in with their work email and build their card |
 | `404.html` | The public card page people see when they scan a QR code or tap an NFC tag (GitHub Pages uses it for every card address, such as `/brian-beehler`) |
 | `admin.html` | The Marcom admin page: hide, remove or edit cards, write NFC tags, export links |
 | `config.js` | The settings you fill in during step 3 |
@@ -50,7 +51,7 @@ Staff register with their work email and a password. Only @aiacanada.com and @i-
 
 **In Supabase > Authentication > URL Configuration:**
 1. Set **Site URL** to `https://card.aiacanada.com`
-2. Under **Redirect URLs**, add `https://card.aiacanada.com/**`
+2. Under **Redirect URLs**, add `https://card.aiacanada.com/**` (confirmation and password-reset links go to `/edit.html`)
    Without this, confirmation and password-reset links point to the wrong address.
 
 **In Supabase > Authentication > Sign In / Providers > Email:**
@@ -84,7 +85,7 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 
 ## Step 7. Test before launch
 
-- [ ] Create an account at card.aiacanada.com with a work email, confirm it from the email, sign in and save a test card.
+- [ ] Create an account at card.aiacanada.com/edit.html with a work email, confirm it from the email, sign in and save a test card.
 - [ ] Try “Forgot your password?” and set a new password.
 - [ ] Open the card link on an iPhone and an Android phone. Select **Save contact** on each.
 - [ ] Scan the QR code with a phone camera.
@@ -93,6 +94,7 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 - [ ] On an Android phone in Chrome, write a blank NFC tag, then tap it with an iPhone.
 - [ ] Switch the card and editor to French and review the wording.
 - [ ] In the editor, select **Open my phone card** on an iPhone and an Android phone, add it to the home screen, then open it in airplane mode. The QR code should still show and the screen should stay on.
+- [ ] Search the team on card.aiacanada.com, set a default card on a phone, reopen card.aiacanada.com and confirm it opens that card, then remove the default.
 - [ ] Try to save a card with the address `my-card` and confirm it’s refused (it’s reserved for the phone app).
 
 ## Before rollout: approvals
@@ -101,6 +103,10 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 - **IT:** the email sending account (SMTP), the subdomain, Canadian data region.
 - **Privacy:** card pages are public. Mobile numbers are hidden unless each person turns them on. Card pages ask search engines not to index them.
 - **French copy:** check the French interface text against the Ongoing Terminology list.
+
+## Team search and the default card
+
+card.aiacanada.com opens a search of everyone with a public card, in English or French, filterable by AIA Canada or I-CAR Canada. On any card, **Make this the default card on this phone** saves that choice on the device. From then on, opening card.aiacanada.com on that phone goes straight to that card’s full-screen QR code, which suits staff phones and a shared booth tablet. **Search the team** on the QR screen still reaches the search, and **Remove default** on the card undoes it. Hidden cards never appear in the search.
 
 ## “My card” on staff phones
 

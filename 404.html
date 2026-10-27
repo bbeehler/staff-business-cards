@@ -44,6 +44,13 @@
           <div class="hint" id="scanHint"></div>
         </div>
       </div>
+
+      <div class="default-row" id="defaultRow">
+        <button class="linkbtn" type="button" id="setDefault"></button>
+        <span id="isDefault" hidden></span>
+        <button class="linkbtn" type="button" id="clearDefault" hidden></button>
+        <p class="hint" id="defaultHint" hidden></p>
+      </div>
     </div>
   </article>
 
@@ -59,6 +66,7 @@
         <button class="btn" type="button" id="meSend"></button>
         <button class="btn" type="button" id="meView"></button>
       </div>
+      <a class="me-search" id="meSearch" href="/?browse=1"></a>
     </div>
     <aside class="me-tip" id="meTip" hidden>
       <p><strong id="meTipTitle"></strong> <span id="meTipBody"></span></p>
@@ -148,6 +156,11 @@
     const open = !$("shareBox").hidden;
     $("shareBtn").textContent = open ? t("hideQr") : t("shareCard");
     $("scanHint").textContent = t("scanToSave");
+    const isDef = K.getDefault() === p.slug;
+    $("setDefault").hidden = isDef; $("setDefault").textContent = t("setDefault");
+    $("isDefault").hidden = !isDef; $("isDefault").textContent = t("isDefault") + " ";
+    $("clearDefault").hidden = !isDef; $("clearDefault").textContent = t("clearDefault");
+    $("defaultHint").textContent = t("defaultHint");
     $("card").hidden = false; $("message").hidden = true;
 
     if (me) {
@@ -156,6 +169,7 @@
       $("meOrg").textContent = b.name;
       $("meSend").textContent = t("sendLink");
       $("meView").textContent = t("viewCard");
+      $("meSearch").textContent = t("searchTeam");
       $("meClose").setAttribute("aria-label", t("hideQr"));
       $("meClose").textContent = "×";
       $("meTipTitle").textContent = t("installTip");
@@ -187,6 +201,13 @@
     if (navigator.share) navigator.share({ title: name, url }).catch(() => {});
     else location.href = "mailto:?subject=" + encodeURIComponent(name) + "&body=" + encodeURIComponent(url);
   });
+  $("setDefault").addEventListener("click", () => {
+    K.setDefault(p.slug);
+    store.set("my-card-profile", JSON.stringify(p));
+    $("defaultHint").hidden = false;
+    render();
+  });
+  $("clearDefault").addEventListener("click", () => { K.clearDefault(); $("defaultHint").hidden = true; render(); });
   $("meTipClose").addEventListener("click", () => { $("meTip").hidden = true; store.set("my-card-tip", "off"); });
 
   function setupOwner(org) {

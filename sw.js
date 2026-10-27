@@ -2,7 +2,7 @@
 // Registered only from the owner's phone card (/my-card or /<slug>?me=1).
 // Network first, so details stay current; the cache is only a fallback.
 // Never touches Supabase requests: sign-in and data always go to the network.
-const CACHE = "staff-card-v1";
+const CACHE = "staff-card-v2";
 const SHELL = [
   "/404.html", "/styles.css", "/config.js", "/shared.js",
   "/assets/aia-canada-logo.png", "/assets/icar-canada-logo.png",
@@ -29,7 +29,8 @@ self.addEventListener("fetch", e => {
   const isPhoto = url.hostname.endsWith(".supabase.co") && url.pathname.includes("/storage/v1/object/public/photos/");
   if (!sameOrigin && !STATIC_HOSTS.includes(url.hostname) && !isPhoto) return;
   // Leave the editor and admin pages alone.
-  if (sameOrigin && (url.pathname === "/" || url.pathname.startsWith("/index") || url.pathname.startsWith("/admin"))) return;
+  // Exact matches only: a card address like /edith-smith must still be cached.
+  if (sameOrigin && ["/", "/index.html", "/edit.html", "/admin.html"].includes(url.pathname)) return;
 
   e.respondWith(
     fetch(req)

@@ -53,6 +53,23 @@
       myPhoneTitle: "Put your card on your phone",
       myPhoneBody: "Open this on your phone and add it to your home screen. It opens straight to your QR code, works without a signal, and keeps the screen on while people scan.",
       myPhoneBtn: "Open my phone card",
+      // landing page
+      findTitle: "Find a team member",
+      findIntro: "Search AIA Canada and I-CAR Canada staff to view a card or save a contact.",
+      searchLabel: "Search by name or title",
+      allOrgs: "All",
+      noResults: "No one matches that search.",
+      loadError: "The team couldn’t be loaded. Check your connection and try again.",
+      resultsCount: "{n} people",
+      resultsOne: "1 person",
+      staffLink: "Staff: create or edit your card",
+      // default card on this phone
+      setDefault: "Make this the default card on this phone",
+      isDefault: "Default card on this phone.",
+      clearDefault: "Remove default",
+      defaultHint: "This card will open automatically when card.aiacanada.com is opened on this phone.",
+      defaultOn: "Default card on this phone",
+      searchTeam: "Search the team",
       scanToSave: "Scan to open this card",
       ext: "ext.",
       notFoundTitle: "This card isn’t available",
@@ -141,6 +158,23 @@
       myPhoneTitle: "Votre carte sur votre téléphone",
       myPhoneBody: "Ouvrez ce lien sur votre téléphone et ajoutez-le à votre écran d’accueil. Il s’ouvre directement sur votre code QR, fonctionne sans réseau et garde l’écran allumé pendant qu’on le balaie.",
       myPhoneBtn: "Ouvrir ma carte mobile",
+      // landing page
+      findTitle: "Trouver un membre de l’équipe",
+      findIntro: "Recherchez le personnel de l’AIA Canada et d’I-CAR Canada pour voir une carte ou enregistrer un contact.",
+      searchLabel: "Rechercher par nom ou titre",
+      allOrgs: "Tous",
+      noResults: "Aucun résultat pour cette recherche.",
+      loadError: "L’équipe n’a pas pu être chargée. Vérifiez votre connexion et réessayez.",
+      resultsCount: "{n} personnes",
+      resultsOne: "1 personne",
+      staffLink: "Personnel : créez ou modifiez votre carte",
+      // default card on this phone
+      setDefault: "En faire la carte par défaut sur ce téléphone",
+      isDefault: "Carte par défaut sur ce téléphone.",
+      clearDefault: "Retirer",
+      defaultHint: "Cette carte s’ouvrira automatiquement quand card.aiacanada.com sera ouvert sur ce téléphone.",
+      defaultOn: "Carte par défaut sur ce téléphone",
+      searchTeam: "Rechercher dans l’équipe",
       scanToSave: "Balayez pour ouvrir cette carte",
       ext: "poste",
       notFoundTitle: "Cette carte n’est pas disponible",
@@ -362,8 +396,15 @@
     } catch (e) { return ""; }
   }
 
+  // ---------- Default card on this device ----------
+  // One key for both the phone card (/my-card) and the landing page's automatic open.
+  const DEFAULT_KEY = "my-card-slug", DEFAULT_PROFILE_KEY = "my-card-profile";
+  function getDefault() { try { return localStorage.getItem(DEFAULT_KEY) || ""; } catch (e) { return ""; } }
+  function setDefault(slug) { try { localStorage.setItem(DEFAULT_KEY, slug); } catch (e) {} }
+  function clearDefault() { try { localStorage.removeItem(DEFAULT_KEY); localStorage.removeItem(DEFAULT_PROFILE_KEY); } catch (e) {} }
+
   window.Cards = {
-    C, BRANDS, ADDRESS, addressLines, T, configured, client, siteUrl, cardUrl, photoUrl, emailAllowed, slugify, title,
+    C, BRANDS, ADDRESS, addressLines, getDefault, setDefault, clearDefault, T, configured, client, siteUrl, cardUrl, photoUrl, emailAllowed, slugify, title,
     withScheme, telHref, vcard, qrSvg, qrPng, download, squareJpeg, fetchBase64
   };
 })();

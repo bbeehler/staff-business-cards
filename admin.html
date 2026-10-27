@@ -17,12 +17,12 @@
 <div class="wrap wide">
   <header class="topbar">
     <img class="logo" src="/assets/aia-canada-logo.png" alt="AIA Canada">
-    <div class="right"><a class="linkbtn" href="/">My card</a></div>
+    <div class="right"><a class="linkbtn" href="/edit.html">My card</a></div>
   </header>
   <h1>Staff business cards</h1>
   <p class="muted" id="intro">Hide, remove or edit any staff card, write NFC tags, and export card links for bulk tag programming.</p>
 
-  <section id="denied" class="panel" hidden><p style="margin:0">Only Marcom admins can open this page. <a href="/">Go to my card</a>.</p></section>
+  <section id="denied" class="panel" hidden><p style="margin:0">Only Marcom admins can open this page. <a href="/edit.html">Go to my card</a>.</p></section>
 
   <section id="admin" hidden>
     <div class="actions" style="margin:16px 0; align-items:center">
@@ -70,7 +70,7 @@
   if (!K.configured()) { $("intro").textContent = K.T.en.setupNeeded; return; }
   const sb = K.client();
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { location.href = "/"; return; }
+  if (!session) { location.href = "/edit.html"; return; }
   const { data: adm } = await sb.from("admins").select("email").limit(1);
   if (!adm || !adm.length) { $("denied").hidden = false; return; }
   $("admin").hidden = false;
@@ -109,7 +109,7 @@
       td(new Date(p.updated_at).toLocaleDateString("en-CA"));
       const act = document.createElement("div"); act.className = "actions";
       act.append(
-        btn("Edit", "secondary", () => { location.href = "/?id=" + encodeURIComponent(p.id); }),
+        btn("Edit", "secondary", () => { location.href = "/edit.html?id=" + encodeURIComponent(p.id); }),
         btn("Copy link", "secondary", async () => {
           try { await navigator.clipboard.writeText(K.cardUrl(p.slug)); status("Link copied for " + p.first_name + " " + p.last_name + "."); }
           catch (e) { status(K.cardUrl(p.slug)); }
