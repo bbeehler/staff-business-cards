@@ -32,10 +32,40 @@
   <!-- Not configured -->
   <section id="setup" class="panel" hidden><p data-i18n="setupNeeded" style="margin:0"></p></section>
 
-  <!-- Signed out -->
+  <!-- Signed out: sign in, register, reset password -->
   <section id="signedOut" hidden>
     <p data-i18n="signInIntro"></p>
-    <button class="btn" type="button" id="signIn" data-i18n="signIn"></button>
+    <div class="seg" role="group" aria-label="Account" id="authSeg" style="margin:8px 0 16px">
+      <button type="button" data-mode="signin" aria-pressed="true" data-i18n="tabSignIn"></button>
+      <button type="button" data-mode="register" aria-pressed="false" data-i18n="tabRegister"></button>
+    </div>
+    <form id="authForm" class="panel" novalidate>
+      <div class="grid">
+        <div class="full"><label for="authEmail" data-i18n="workEmail"></label>
+          <input type="email" id="authEmail" autocomplete="username" inputmode="email" required></div>
+        <div class="full"><label for="authPassword" data-i18n="password"></label>
+          <input type="password" id="authPassword" autocomplete="current-password" required minlength="8"
+            style="width:100%; font:inherit; border:1px solid var(--line); border-radius:8px; padding:10px 12px; color:var(--ink); background:var(--surface)">
+          <p class="hint" id="pwHint" data-i18n="passwordHint" hidden></p></div>
+      </div>
+      <div class="actions" style="margin-top:18px; align-items:center">
+        <button class="btn" type="submit" id="authSubmit"></button>
+        <button class="linkbtn" type="button" id="forgot" data-i18n="forgot"></button>
+      </div>
+      <div class="status" id="authStatus" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <!-- Set a new password (after a reset link) -->
+  <section id="newPassword" hidden>
+    <form id="pwForm" class="panel" novalidate>
+      <label for="newPw" data-i18n="newPassword"></label>
+      <input type="password" id="newPw" autocomplete="new-password" minlength="8" required
+        style="width:100%; font:inherit; border:1px solid var(--line); border-radius:8px; padding:10px 12px; color:var(--ink); background:var(--surface)">
+      <p class="hint" data-i18n="passwordHint"></p>
+      <div class="actions" style="margin-top:14px"><button class="btn" type="submit" data-i18n="savePassword"></button></div>
+      <div class="status" id="pwStatus" aria-live="polite"></div>
+    </form>
   </section>
 
   <!-- Signed in with a non-staff account -->
@@ -139,6 +169,7 @@
     document.querySelectorAll("#langSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
     $("slugPrefix").textContent = K.siteUrl().replace(/^https?:\/\//, "") + "/";
     $("shareHint").textContent = profile ? t("yourCardHint") : t("saveFirst");
+    if ($("authSubmit")) $("authSubmit").textContent = t(authMode === "register" ? "register" : "signIn");
   }
 
   function setOrg(o) {
@@ -150,7 +181,7 @@
   }
 
   function show(id) {
-    ["setup", "signedOut", "notStaff", "editor"].forEach(s => $(s).hidden = s !== id);
+    ["setup", "signedOut", "newPassword", "notStaff", "editor"].forEach(s => $(s).hidden = s !== id);
     $("signOut").hidden = !session;
   }
 
@@ -234,8 +265,62 @@
     $("avatar").hidden = true; $("removePhoto").hidden = true;
   });
 
-  $("signIn").addEventListener("click", () => {
-    sb.auth.signInWithOAuth({ provider: "azure", options: { scopes: "email openid profile", redirectTo: K.siteUrl() + "/" } });
+  // ---------- Email and password accounts ----------
+  let authMode = "signin";
+  function setAuthMode(m) {
+    authMode = m;
+    document.querySelectorAll("#authSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+    $("authSubmit").textContent = t(m === "register" ? "register" : "signIn");
+    $("authPassword").autocomplete = m === "register" ? "new-password" : "current-password";
+    $("pwHint").hidden = m !== "register";
+    $("forgot").hidden = m === "register";
+    $("authStatus").textContent = ""; $("authStatus").className = "status";
+  }
+  document.querySelectorAll("#authSeg button").forEach(b => b.addEventListener("click", () => setAuthMode(b.dataset.mode)));
+
+  function authMsg(key, err) { $("authStatus").textContent = t(key); $("authStatus").className = "status" + (err ? " error" : ""); }
+
+  $("authForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const email = $("authEmail").value.trim().toLowerCase(), pw = $("authPassword").value;
+    $("authEmail").setAttribute("aria-invalid", "false"); $("authPassword").setAttribute("aria-invalid", "false");
+    if (!K.emailAllowed(email)) { $("authEmail").setAttribute("aria-invalid", "true"); authMsg("notStaff", true); return; }
+    if (authMode === "register" && pw.length < 8) { $("authPassword").setAttribute("aria-invalid", "true"); authMsg("passwordHint", true); return; }
+    $("authSubmit").disabled = true;
+    try {
+      if (authMode === "register") {
+        const { data, error } = await sb.auth.signUp({ email, password: pw, options: { emailRedirectTo: K.siteUrl() + "/" } });
+        if (error) throw error;
+        if (data.session) onSession(data.session); else authMsg("checkEmail");
+      } else {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+        if (error) throw error;
+        onSession(data.session);
+      }
+    } catch (err) {
+      const m = String(err && err.message || "").toLowerCase();
+      if (m.includes("not confirmed")) authMsg("notConfirmed", true);
+      else if (m.includes("already registered")) authMsg("alreadyRegistered", true);
+      else if (m.includes("invalid login")) authMsg("badLogin", true);
+      else if (m.includes("rate limit")) authMsg("tooMany", true);
+      else authMsg("authError", true);
+    } finally { $("authSubmit").disabled = false; }
+  });
+
+  $("forgot").addEventListener("click", async () => {
+    const email = $("authEmail").value.trim().toLowerCase();
+    if (!K.emailAllowed(email)) { $("authEmail").setAttribute("aria-invalid", "true"); authMsg("enterEmailFirst", true); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: K.siteUrl() + "/" });
+    authMsg(error ? "authError" : "resetSent", !!error);
+  });
+
+  $("pwForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const pw = $("newPw").value, st = $("pwStatus");
+    if (pw.length < 8) { st.textContent = t("passwordHint"); st.className = "status error"; return; }
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) { st.textContent = t("authError"); st.className = "status error"; return; }
+    st.textContent = ""; const { data } = await sb.auth.getSession(); onSession(data.session);
   });
   $("signOut").addEventListener("click", async () => { await sb.auth.signOut(); profile = null; onSession(null); });
 
@@ -300,9 +385,14 @@
   applyText();
   if (!K.configured()) { show("setup"); return; }
   sb = K.client();
+  setAuthMode("signin");
   const { data } = await sb.auth.getSession();
-  sb.auth.onAuthStateChange((evt, s) => { if (evt === "SIGNED_IN" && (!session || session.user.id !== s.user.id)) onSession(s); });
-  onSession(data.session);
+  sb.auth.onAuthStateChange((evt, s) => {
+    if (evt === "PASSWORD_RECOVERY") { session = s; show("newPassword"); return; }
+    if (evt === "SIGNED_IN" && (!session || session.user.id !== s.user.id)) onSession(s);
+  });
+  if (/type=recovery/.test(location.hash + location.search)) { session = data.session; show("newPassword"); }
+  else onSession(data.session);
 })();
 </script>
 </body>

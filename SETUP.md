@@ -1,14 +1,14 @@
 # Staff digital business cards: setup guide
 
-> **Status (Oct. 27, 2026):** the Supabase project `staff-cards` (Canada Central) is created, the database and photo storage are set up, the contact function is deployed, and `config.js` is filled in. Steps 1, 2, 3 and 5 are done. Still to do: add the first admin (step 2, last item), Microsoft sign-in (step 4), GitHub Pages and DNS (step 6), and testing (step 7).
+> **Status (Oct. 27, 2026):** the Supabase project `staff-cards` (Canada Central) is created, the database and photo storage are set up, the contact function is deployed, and `config.js` is filled in. Steps 1, 2, 3 and 5 are done. GitHub Pages and DNS (step 6) are done. Still to do: add the first admin (step 2, last item), email registration settings (step 4) and testing (step 7).
 
-This guide sets up the AIA Canada and I-CAR Canada staff business card site at **card.aiacanada.com**. It takes about an hour. Steps 1, 4 and 6 need someone with IT admin access.
+This guide sets up the AIA Canada and I-CAR Canada staff business card site at **card.aiacanada.com**. It takes about an hour. Step 6 (DNS) and the email sending setup in step 4 need IT.
 
 ## What’s in this folder
 
 | File | What it does |
 |---|---|
-| `index.html` | Where staff sign in with their Microsoft work account and build their card |
+| `index.html` | Where staff register or sign in with their work email and build their card |
 | `404.html` | The public card page people see when they scan a QR code or tap an NFC tag (GitHub Pages uses it for every card address, such as `/brian-beehler`) |
 | `admin.html` | The Marcom admin page: hide, remove or edit cards, write NFC tags, export links |
 | `config.js` | The settings you fill in during step 3 |
@@ -43,23 +43,20 @@ This guide sets up the AIA Canada and I-CAR Canada staff business card site at *
 
 The anon key is designed to be public. The security rules in `schema.sql` decide who can read and change data.
 
-## Step 4. Turn on Microsoft sign-in (IT)
+## Step 4. Set up email registration
 
-**In Microsoft Entra ID (Azure portal):**
-1. Go to **App registrations > New registration**.
-2. Name: `Staff business cards`. Supported account types: **Accounts in this organizational directory only** (single tenant). This keeps sign-in limited to AIA staff accounts.
-3. Redirect URI (Web): `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`
-4. After it’s created, copy the **Application (client) ID** and **Directory (tenant) ID**.
-5. Under **Certificates & secrets**, create a client secret and copy its **Value**.
-6. Under **Token configuration**, add the optional claim `email` (ID token).
+Staff register with their work email and a password. Only @aiacanada.com and @i-car.ca addresses can register (the database blocks everything else), and each person must confirm their email before signing in.
 
-**In Supabase:**
-1. Go to **Authentication > Sign In / Providers > Azure** and turn it on.
-2. Paste the client ID and secret.
-3. Azure Tenant URL: `https://login.microsoftonline.com/YOUR-TENANT-ID`
-4. Go to **Authentication > URL Configuration**. Set **Site URL** to `https://card.aiacanada.com` and add `https://card.aiacanada.com/**` under **Redirect URLs**.
+**In Supabase > Authentication > URL Configuration:**
+1. Set **Site URL** to `https://card.aiacanada.com`
+2. Under **Redirect URLs**, add `https://card.aiacanada.com/**`
+   Without this, confirmation and password-reset links point to the wrong address.
 
-Note: the client secret expires. Set a calendar reminder to renew it before the expiry date IT chooses.
+**In Supabase > Authentication > Sign In / Providers > Email:**
+1. Make sure **Email** is on and **Confirm email** is on.
+2. Set the minimum password length to 8.
+
+**Email sending (needed before launch):** Supabase’s built-in email only sends to members of your Supabase team and only a few messages per hour, so it’s fine for testing but not for staff. Before rollout, set up custom SMTP under **Authentication > Emails > SMTP Settings**, using an AIA sending account or an email service (IT can advise). Then edit the **Confirm signup** and **Reset password** email templates so they come from AIA Canada, in English and French.
 
 ## Step 5 (optional, recommended). Reliable “Save contact” on iPhones
 
@@ -86,10 +83,11 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 
 ## Step 7. Test before launch
 
-- [ ] Sign in at card.aiacanada.com with a work account and save a test card.
+- [ ] Create an account at card.aiacanada.com with a work email, confirm it from the email, sign in and save a test card.
+- [ ] Try “Forgot your password?” and set a new password.
 - [ ] Open the card link on an iPhone and an Android phone. Select **Save contact** on each.
 - [ ] Scan the QR code with a phone camera.
-- [ ] Sign in with a personal Microsoft account and confirm it’s refused.
+- [ ] Try to register with a personal email (such as Gmail) and confirm it’s refused.
 - [ ] Open `/admin.html` as an admin and as a regular staff member.
 - [ ] On an Android phone in Chrome, write a blank NFC tag, then tap it with an iPhone.
 - [ ] Switch the card and editor to French and review the wording.
@@ -97,7 +95,7 @@ The site must run on its own domain (not `github.io/repository-name`), because c
 ## Before rollout: approvals
 
 - **Brand owner:** card design, logo use, colours, and the Arial fallback for Sofia Pro (see `styles.css`).
-- **IT:** Microsoft sign-in, the subdomain, Canadian data region.
+- **IT:** the email sending account (SMTP), the subdomain, Canadian data region.
 - **Privacy:** card pages are public. Mobile numbers are hidden unless each person turns them on. Card pages ask search engines not to index them.
 - **French copy:** check the French interface text against the Ongoing Terminology list.
 
